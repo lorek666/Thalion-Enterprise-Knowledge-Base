@@ -23,6 +23,7 @@ def test_deploy_artifacts_exist_and_contain_no_live_secrets():
         DEPLOY_ROOT / "compose.synthetic.yml",
         DEPLOY_ROOT / "env.example",
         DEPLOY_ROOT / "systemd" / "thalion-serve.service.example",
+        DEPLOY_ROOT / "systemd" / "thalion-serve-production.service.example",
         DEPLOY_ROOT / "systemd" / "thalion-worker.service.example",
         DEPLOY_ROOT / "systemd" / "thalion-runtime-alerts.service.example",
         DEPLOY_ROOT / "systemd" / "thalion-runtime-alerts.timer.example",
@@ -71,6 +72,17 @@ def test_systemd_and_synthetic_profile_examples_match_runtime_contract(tmp_path)
         "Restart=on-failure",
     ):
         assert setting in worker_unit
+
+    production_unit = (DEPLOY_ROOT / "systemd" / "thalion-serve-production.service.example").read_text(encoding="utf-8")
+    for setting in (
+        "--mode production",
+        "--check-config",
+        "Restart=on-failure",
+        "NoNewPrivileges=yes",
+        "ProtectSystem=strict",
+        "PrivateTmp=yes",
+    ):
+        assert setting in production_unit
 
     credentials = json.loads((DEPLOY_ROOT / "synthetic-profile.example" / "credentials.json").read_text(encoding="utf-8"))
     assert isinstance(credentials, list) and len(credentials) >= 1

@@ -1,0 +1,51 @@
+# Thalion 生产 API 单元模板
+# 安装示例：
+#   sudo install -m 0644 deploy/systemd/thalion-serve-production.service.example /etc/systemd/system/thalion-serve-production.service
+#   sudo systemctl daemon-reload && sudo systemctl enable --now thalion-serve-production.service
+
+[Unit]
+Description=Thalion Enterprise Knowledge Base API (Production)
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=thalion
+Group=thalion
+WorkingDirectory=/var/lib/thalion
+EnvironmentFile=/etc/thalion/thalion.env
+Environment=PYTHONDONTWRITEBYTECODE=1
+Environment=PYTHONUNBUFFERED=1
+UMask=0077
+
+# 启动前检查生产端口、数据库连接和完整迁移头
+ExecStartPre=/opt/thalion-venv/bin/thalion-serve \
+    --mode production \
+    --check-config
+
+# API 只监听本机，由前置 TLS 代理负责对外提供 HTTPS
+ExecStart=/opt/thalion-venv/bin/thalion-serve \
+    --mode production \
+    --host 127.0.0.1 \
+    --port 8765
+
+Restart=on-failure
+RestartSec=5
+TimeoutStartSec=60
+TimeoutStopSec=30
+
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+LockPersonality=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+[Install]
+WantedBy=multi-user.target
