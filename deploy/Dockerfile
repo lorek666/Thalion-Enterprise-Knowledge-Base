@@ -49,7 +49,7 @@ USER thalion
 EXPOSE 8765
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
-    CMD ["python", "-I", "-c", "import urllib.request; r = urllib.request.urlopen('http://127.0.0.1:8765/', timeout=2); raise SystemExit(0 if r.status == 200 else 1)"]
+    CMD ["python", "-I", "-m", "enterprise_kb.healthcheck"]
 
 # 默认启动合成资料本地取证服务；可通过覆盖 entrypoint 运行 thalion-db upgrade / thalion-parse / --check-config
 ENTRYPOINT ["thalion-serve"]

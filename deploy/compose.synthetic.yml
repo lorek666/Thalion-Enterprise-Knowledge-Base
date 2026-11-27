@@ -62,6 +62,7 @@ services:
       migrate:
         condition: service_completed_successfully
     environment:
+      THALION_APP_PORT: "${THALION_APP_PORT:-8765}"
       THALION_DATABASE_URL: "postgresql://${THALION_POSTGRES_USER:-thalion}:${THALION_POSTGRES_PASSWORD:?请设置隔离合成数据库口令 THALION_POSTGRES_PASSWORD}@127.0.0.1:5432/${THALION_POSTGRES_DB:-thalion_synthetic}"
     tmpfs:
       - /tmp:size=128m

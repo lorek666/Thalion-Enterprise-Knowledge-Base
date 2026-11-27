@@ -1251,6 +1251,7 @@ def test_thalion_worker_production_cli_check_config_and_flag_isolation(
         "connector_configured": True,
         "embedding_configured": True,
         "strict_audit_sink": True,
+        "alert_webhook_configured": False,
     }
     assert database_url not in summary_raw
     assert "worker-auth-secret-token" not in summary_raw

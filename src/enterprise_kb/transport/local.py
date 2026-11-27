@@ -459,6 +459,10 @@ def _run_production_mode(arguments) -> int:
         connect = production_connection_factory(database_url)
         oidc_sso, identity = _build_production_oidc_sso(config, os.environ, connect, registry.identity)
         registry = replace(registry, identity=identity)
+        metrics_ref = (os.environ.get("THALION_METRICS_TOKEN_REF") or "").strip()
+        metrics_token = resolve_secret_ref(metrics_ref) if metrics_ref else None
+        if metrics_token is not None and not re.fullmatch(r"[A-Za-z0-9_.~+/-]{32,512}", metrics_token):
+            raise ConfigValidationError("THALION_METRICS_TOKEN_REF must resolve to a dedicated bearer token.")
         with connect() as connection:
             revisions = _verify_shared_tables(connection)
     except (
@@ -515,13 +519,14 @@ def _run_production_mode(arguments) -> int:
             ),
             "oidc_sso_configured": oidc_sso is not None,
             "oidc_access_mapping_configured": isinstance(identity, OidcBrowserAccess),
+            "metrics_configured": metrics_token is not None,
             "port": arguments.port,
         }
         print(json.dumps(summary, ensure_ascii=False))
         return 0
     service = EvidenceService.from_port_registry(connect, registry)
     uvicorn.run(
-        create_app(service, allowed_hosts=config.allowed_hosts, oidc_sso=oidc_sso),
+        create_app(service, allowed_hosts=config.allowed_hosts, oidc_sso=oidc_sso, metrics_token=metrics_token),
         host=arguments.host,
         port=arguments.port,
         proxy_headers=False,
@@ -544,7 +549,7 @@ def main() -> int:
     parser.add_argument("--originals", type=Path, help="私有合成原件目录，默认为配置目录下的 originals")
     parser.add_argument("--backups", type=Path, help="已存在的私有合成备份目录；不配置则禁止登记")
     parser.add_argument("--host", default="127.0.0.1", help="监听地址（synthetic_local 强制 127.0.0.1）")
-    parser.add_argument("--port", type=int, default=8765)
+    parser.add_argument("--port", type=int, default=os.environ.get("THALION_APP_PORT", "8765"))
     parser.add_argument("--check-config", action="store_true", help="仅校验运行配置、外部端口与数据库迁移状态后退出")
     arguments = parser.parse_args()
     if not 0 <= arguments.port <= 65535:

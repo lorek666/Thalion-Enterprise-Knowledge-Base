@@ -7,6 +7,7 @@ import sys
 from threading import Barrier
 from uuid import uuid4
 
+import httpx2
 import psycopg
 from psycopg import sql
 import pytest
@@ -196,3 +197,38 @@ def test_failed_snapshot_then_failed_outbox_write_cannot_clear_alert(runtime_db,
             runtime_alerts.poll(connection, tenant.space_ref)
     assert alert_events(connection, tenant) == before
     assert runtime_alerts.poll(connection, tenant.space_ref)["transitions"] == {"raised": [], "cleared": ["stalled"]}
+
+
+def test_webhook_retries_pending_alerts_and_keeps_payload_scoped(runtime_db):
+    from enterprise_kb import runtime_alerts
+
+    connection, tenant, _ = runtime_db
+    other = register_tenant(connection, "Different organization")
+    old_job = older_job(connection, tenant)
+    older_job(connection, other)
+    runtime_alerts.poll(connection, tenant.space_ref)
+    runtime_alerts.poll(connection, other.space_ref)
+    deliveries = []
+
+    def receive(request):
+        assert request.url == "https://alerts.corp.example/thalion"
+        assert request.headers["Authorization"] == "Bearer example-test-token"
+        deliveries.append((request.headers["Idempotency-Key"], json.loads(request.content)))
+        return httpx2.Response(503 if len(deliveries) == 1 else 202)
+
+    webhook = runtime_alerts.AlertWebhook(
+        "https://alerts.corp.example/thalion", token="example-test-token", transport=httpx2.MockTransport(receive),
+    )
+    with pytest.raises(runtime_alerts.PortUnavailable):
+        runtime_alerts.deliver_pending(connection, tenant.org_id, tenant.space_ref, webhook)
+    assert runtime_alerts.deliver_pending(connection, tenant.org_id, tenant.space_ref, webhook) == 1
+    assert deliveries[0] == deliveries[1]
+    assert deliveries[1][1]["space_id"] == str(tenant.space_ref)
+    assert deliveries[1][1]["reason"] == "stalled" and deliveries[1][1]["state"] == "raised"
+    assert not any(str(value) in json.dumps(deliveries) for value in (old_job, other.space_ref))
+    assert runtime_alerts.deliver_pending(connection, tenant.org_id, tenant.space_ref, webhook) == 0
+
+    finish(connection, tenant, old_job)
+    runtime_alerts.poll(connection, tenant.space_ref)
+    assert runtime_alerts.deliver_pending(connection, tenant.org_id, tenant.space_ref, webhook) == 1
+    assert deliveries[-1][1]["state"] == "cleared" and deliveries[-1][0] != deliveries[0][0]

@@ -1,20 +1,90 @@
 import argparse
 import json
 import os
+import re
 import sys
+from urllib.parse import urlsplit
 from uuid import UUID
 
+import httpx2
 import psycopg
 from psycopg.pq import TransactionStatus
 from sqlalchemy.exc import ArgumentError
 
 from .database import local_connection_factory
-from .runtime.events import append_event
+from .ports.adapters import resolve_secret_ref
+from .ports.contracts import PortUnavailable
+from .runtime.config import _validate_https_url
+from .runtime.events import OutboxEvent, append_event, consume_event
 from .runtime.job_backlog import read_job_backlog
 
 
 BLOCKERS = frozenset({"awaiting_external", "external_budget_blocked", "inconsistent", "lease_expired"})
 STALL_AGE_MS = 3_600_000
+_WEBHOOK_EVENTS = {
+    f"runtime.backlog.{reason}.{state}": (reason, state)
+    for reason in (*BLOCKERS, "stalled") for state in ("raised", "cleared")
+}
+_CONSUMER = "thalion-runtime-alert-webhook"
+
+
+class AlertWebhook:
+    def __init__(self, url: str, *, token: str | None = None, transport: httpx2.BaseTransport | None = None):
+        self._url = _validate_https_url(url, "Alert webhook")
+        if urlsplit(self._url).fragment or "#" in self._url:
+            raise ValueError("Alert webhook URL cannot contain a fragment.")
+        if token is not None and not re.fullmatch(r"[A-Za-z0-9_.~+/-]{1,512}={0,2}", token):
+            raise ValueError("Alert webhook bearer token is invalid.")
+        self._token = token
+        self._transport = transport
+
+    @classmethod
+    def from_env(cls, env):
+        url_ref = (env.get("THALION_ALERT_WEBHOOK_URL_REF") or "").strip()
+        token_ref = (env.get("THALION_ALERT_WEBHOOK_TOKEN_REF") or "").strip()
+        if not url_ref:
+            if token_ref:
+                raise ValueError("Alert webhook authentication requires a webhook URL reference.")
+            return None
+        return cls(
+            resolve_secret_ref(url_ref, environ=env),
+            token=resolve_secret_ref(token_ref, environ=env) if token_ref else None,
+        )
+
+    def send(self, event: OutboxEvent) -> None:
+        reason, state = _WEBHOOK_EVENTS[event.event_type]
+        event_id = str(event.event_id)
+        headers = {"Idempotency-Key": event_id}
+        if self._token is not None:
+            headers["Authorization"] = f"Bearer {self._token}"
+        try:
+            with httpx2.Client(timeout=4, follow_redirects=False, transport=self._transport, trust_env=False) as client:
+                with client.stream("POST", self._url, headers=headers, json={
+                    "event_id": event_id, "space_id": str(event.object_ref), "reason": reason,
+                    "state": state, "occurred_at": event.occurred_at.isoformat(),
+                }) as response:
+                    if not 200 <= response.status_code < 300:
+                        raise PortUnavailable("Alert webhook did not accept the event.")
+        except (httpx2.HTTPError, ValueError):
+            raise PortUnavailable("Alert webhook is unavailable.") from None
+
+
+def deliver_pending(connection: psycopg.Connection, org_id: int, space_ref: UUID, webhook: AlertWebhook) -> int:
+    if not connection.autocommit or connection.info.transaction_status != TransactionStatus.IDLE:
+        raise RuntimeError("Alert delivery requires an idle autocommit connection.")
+    events = connection.execute("""
+        SELECT event.event_id FROM thalion.outbox_event AS event
+        WHERE event.org_id = %s AND event.object_ref = %s AND event.event_type = ANY(%s)
+          AND NOT EXISTS (
+            SELECT 1 FROM thalion.event_consumption AS receipt
+            WHERE (receipt.org_id, receipt.event_id, receipt.consumer) = (event.org_id, event.event_id, %s)
+          )
+        ORDER BY event.occurred_at, event.event_id LIMIT 10
+        """, (org_id, space_ref, list(_WEBHOOK_EVENTS), _CONSUMER)).fetchall()
+    return sum(
+        consume_event(connection, org_id, event_id, _CONSUMER, lambda _, event: webhook.send(event))
+        for event_id, in events
+    )
 
 
 def _active_reasons(snapshot: dict) -> set[str]:

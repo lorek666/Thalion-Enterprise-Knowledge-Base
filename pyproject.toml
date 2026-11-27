@@ -17,6 +17,7 @@ dependencies = [
   "httpx2==2.16.2",
   "markdown-it-py==4.3.0",
   "mcp==2.3.0",
+  "prometheus-client==0.26.0",
   "psycopg[binary]==3.3.9",
   "pyjwt==2.15.1",
   "SQLAlchemy==2.1.9",

@@ -24,6 +24,7 @@ from enterprise_kb.modules.operations import (
 from enterprise_kb.modules.sources import effectivity, ingest, responsibility
 
 from . import ingest as ingest_transport
+from .observability import register_observability
 from .oidc_sso import EXCHANGE_COOKIE, TX_COOKIE, OidcSsoError, OidcSsoManager
 from .evidence import (
     IDEMPOTENCY_PATTERN, INTERNAL_PAGES, INTERNAL_WRITES, OPERATIONS, SOURCE_PAGES, EvidenceReply, EvidenceService,
@@ -317,6 +318,7 @@ def create_app(
     *,
     allowed_hosts: Sequence[str] | None = None,
     oidc_sso: OidcSsoManager | None = None,
+    metrics_token: str | None = None,
 ) -> FastAPI:
     host_pattern, allowed_schemes, mcp_hosts, mcp_origins = _compile_host_policy(allowed_hosts)
 
@@ -349,6 +351,7 @@ def create_app(
 
     app = FastAPI(openapi_url=None, docs_url=None, redoc_url=None, lifespan=lifespan, redirect_slashes=False)
     app.add_middleware(_Ingress, service=service, host_pattern=host_pattern, allowed_schemes=allowed_schemes)
+    register_observability(app, lambda: service.connect(), metrics_token=metrics_token)
 
     @app.post("/v1/search")
     async def search(request: Request):

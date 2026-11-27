@@ -80,6 +80,7 @@ class WorkerConfig:
     enable_index: bool = True
     enable_alerts: bool = True
     interval_seconds: float = 15.0
+    alert_webhook: runtime_alerts.AlertWebhook | None = None
 
     @classmethod
     def from_port_registry(
@@ -100,6 +101,7 @@ class WorkerConfig:
         enable_index: bool = True,
         enable_alerts: bool = True,
         interval_seconds: float = 15.0,
+        alert_webhook: runtime_alerts.AlertWebhook | None = None,
     ) -> "WorkerConfig":
         registry.validate()
         if store is None:
@@ -142,6 +144,7 @@ class WorkerConfig:
             enable_index=enable_index,
             enable_alerts=enable_alerts,
             interval_seconds=interval_seconds,
+            alert_webhook=alert_webhook,
         )
 
 
@@ -318,14 +321,19 @@ def _discover_unindexed_runs(
     return [(r[0], r[1], r[2]) for r in rows]
 
 
-def _discover_spaces(connection: Connection) -> tuple[tuple[int, UUID], ...]:
+def _discover_spaces(connection: Connection, *, admission: str) -> tuple[tuple[int, UUID], ...]:
     with connection.transaction():
         rows = connection.execute(
             """
-            SELECT org_id, public_id FROM thalion.object_identity
-            WHERE object_type = 'space'
-            ORDER BY org_id, object_id
-            """
+            SELECT identity.org_id, identity.public_id
+            FROM thalion.object_identity AS identity
+            JOIN thalion.space AS space
+              ON (identity.org_id, identity.object_type, identity.object_id) = (space.org_id, 'space', space.space_id)
+            JOIN thalion.principal AS owner
+              ON (owner.org_id, owner.principal_id) = (space.org_id, space.owner_principal_id)
+            WHERE thalion.issuer_matches_admission(owner.authority_issuer, %s)
+            ORDER BY identity.org_id, identity.object_id
+            """, (admission,),
         ).fetchall()
     return tuple((int(r[0]), r[1]) for r in rows)
 
@@ -486,7 +494,7 @@ def run_worker_cycle(config: WorkerConfig) -> WorkerCycleReport:
     if config.enable_alerts:
         try:
             with config.connect() as conn:
-                spaces = _discover_spaces(conn)
+                spaces = _discover_spaces(conn, admission=admission)
             for org_id, space_ref in spaces:
                 try:
                     with config.connect() as conn:
@@ -506,6 +514,9 @@ def run_worker_cycle(config: WorkerConfig) -> WorkerCycleReport:
                                 detail_digest=metadata_digest(space_ref, detail["transitions"]["raised"]),
                             )
                         )
+                    if config.alert_webhook is not None:
+                        with config.connect() as conn:
+                            detail["webhook_delivered"] = runtime_alerts.deliver_pending(conn, org_id, space_ref, config.alert_webhook)
                 except (ValueError, Error, PortUnavailable) as exc:
                     errors.append(f"alerts[{space_ref}]: {exc}")
         except Exception as exc:
@@ -608,6 +619,7 @@ def main(argv: list[str] | None = None) -> int:
                 enable_index=not args.disable_index,
                 enable_alerts=not args.disable_alerts,
                 interval_seconds=args.interval_seconds,
+                alert_webhook=runtime_alerts.AlertWebhook.from_env(os.environ),
             )
         except (
             OSError,
@@ -634,6 +646,7 @@ def main(argv: list[str] | None = None) -> int:
                 "connector_configured": config.connector is not None,
                 "embedding_configured": config.embedding_provider is not None,
                 "strict_audit_sink": config.strict_audit_sink,
+                "alert_webhook_configured": config.alert_webhook is not None,
             }
             print(json.dumps(summary, ensure_ascii=False))
             return 0
