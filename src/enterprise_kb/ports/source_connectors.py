@@ -282,13 +282,18 @@ class FeishuWikiConnector(_BaseHttpAdapter):
             has_child = row.get("has_child", False)
             if (
                 not self._remote_cursor(node_token) or node_token == parent
-                or not self._remote_cursor(obj_token) or type(has_child) is not bool
-                or obj_type not in {"docx", "doc"}
+                or type(has_child) is not bool
                 or not isinstance(title, str) or not 1 <= len(title.strip()) <= 300 or not title.isprintable()
             ):
                 raise ConnectorPortUnavailable("Feishu wiki returned an unsupported or invalid node.")
             if has_child:
                 children.append(node_token)
+            if obj_type not in {"docx", "doc"}:
+                if has_child:
+                    continue
+                raise ConnectorPortUnavailable("Feishu wiki contains an unsupported document type.")
+            if not self._remote_cursor(obj_token):
+                raise ConnectorPortUnavailable("Feishu wiki returned an unsupported or invalid node.")
             try:
                 payload = self._read_document(obj_token, obj_type)
             except ConnectorPortUnavailable:

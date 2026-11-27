@@ -122,6 +122,37 @@ def test_feishu_resumes_nested_pages_and_starts_a_new_sweep():
     assert [item["object_key"] for item in next_sweep.items] == ["feishu:travel"]
 
 
+def test_feishu_skips_directory_nodes_but_continues_into_their_children():
+    source_ref = uuid4()
+    calls = []
+
+    def respond(request):
+        if request.url.path.endswith('/tenant_access_token/internal'):
+            return httpx2.Response(200, json={"code": 0, "tenant_access_token": "tenant-token", "expire": 7200})
+        if request.url.path.endswith('/nodes'):
+            parent = request.url.params.get("parent_node_token")
+            calls.append(parent)
+            if parent is None:
+                rows = [{"node_token": "folder", "obj_token": "", "obj_type": "folder", "title": "制度目录", "has_child": True}]
+            else:
+                rows = [{"node_token": "leaf", "obj_token": "doxcn123", "obj_type": "docx", "title": "住宿制度", "has_child": False}]
+            return httpx2.Response(200, json={"code": 0, "data": {"items": rows, "has_more": False, "page_token": ""}})
+        if request.url.path.endswith('/raw_content'):
+            return httpx2.Response(200, json={"code": 0, "data": {"content": "酒店标准"}})
+        raise AssertionError(request.url)
+
+    connector = source_connectors.FeishuWikiConnector(
+        AuthenticatedEndpointConfig("https://open.feishu.cn", "vault:feishu/app-secret"),
+        app_id="cli_test", space_id="space-1", transport=httpx2.MockTransport(respond),
+        secret_resolver=lambda _: "app-secret",
+    )
+    page = connector.fetch_delta_page(source_ref, None)
+    assert page.items == () and page.has_more
+    page = connector.fetch_delta_page(source_ref, page.through_cursor)
+    assert [item["object_key"] for item in page.items] == ["feishu:leaf"]
+    assert calls == [None, "folder"]
+
+
 def test_sharepoint_graph_reads_delta_content_and_inventory():
     source_ref = uuid4()
     content = b"Travel policy\nHotel limit: 500"
