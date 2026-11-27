@@ -1,5 +1,5 @@
 import argparse
-from collections.abc import Callable, Sequence
+from collections.abc import Sequence
 from contextlib import contextmanager
 from dataclasses import dataclass, field
 from datetime import UTC, date, datetime, timedelta
@@ -29,6 +29,7 @@ from enterprise_kb.database import local_connection_factory, require_current_sch
 from enterprise_kb.modules.access import delivery, policy
 from enterprise_kb.modules.evidence import processing
 from enterprise_kb.modules.operations import evaluation, release
+from enterprise_kb.modules.operations.search_probe import post_search
 from enterprise_kb.modules.retrieval import lexical, vector
 from enterprise_kb.modules.sources import effectivity, originals, registry
 from enterprise_kb.modules.wiki import drafts, inputs, publication
@@ -43,7 +44,6 @@ DISCLAIMER = (
     "本报告仅基于本机隔离合成差旅语料与 HTTP/MCP 取证边界端到端实测，"
     "不替代真实域冻结盲测、双人业务判分、完整问答延迟或生产放行结论。"
 )
-MCP_PROTOCOL_VERSION = "2026-07-28"
 DOCX_MEDIA_TYPE = "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
 SEARCH_FIELDS = frozenset({"excerpt", "citation", "title", "location", "version"})
 HISTORICAL_START = date(2026, 1, 1)
@@ -742,11 +742,7 @@ def _dedup_keys(payload: dict | None, limit: int = 5) -> list[tuple[str, str]]:
 
 def _invoke_http(client, token: str, arguments: dict) -> tuple[str, dict | None, float]:
     started = monotonic()
-    response = client.post(
-        "/v1/search",
-        json=arguments,
-        headers={"Authorization": f"Bearer {token}"},
-    )
+    response = post_search(client, "http", token, arguments)
     elapsed_ms = round((monotonic() - started) * 1000.0, 3)
     body = response.json()
     if response.status_code == 200:
@@ -758,29 +754,7 @@ def _invoke_http(client, token: str, arguments: dict) -> tuple[str, dict | None,
 
 def _invoke_mcp(client, token: str, arguments: dict, rpc_id: int) -> tuple[str, dict | None, float]:
     started = monotonic()
-    response = client.post(
-        "/mcp",
-        json={
-            "jsonrpc": "2.0",
-            "id": rpc_id,
-            "method": "tools/call",
-            "params": {
-                "name": "search",
-                "arguments": arguments,
-                "_meta": {
-                    "io.modelcontextprotocol/protocolVersion": MCP_PROTOCOL_VERSION,
-                    "io.modelcontextprotocol/clientCapabilities": {},
-                },
-            },
-        },
-        headers={
-            "Authorization": f"Bearer {token}",
-            "Accept": "application/json, text/event-stream",
-            "Mcp-Protocol-Version": MCP_PROTOCOL_VERSION,
-            "Mcp-Method": "tools/call",
-            "Mcp-Name": "search",
-        },
-    )
+    response = post_search(client, "mcp", token, arguments, rpc_id)
     elapsed_ms = round((monotonic() - started) * 1000.0, 3)
     body = response.json()
     if response.status_code != 200:

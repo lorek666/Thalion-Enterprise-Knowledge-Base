@@ -145,12 +145,9 @@ def _entrance_report(results, thresholds):
     return report
 
 
-def evaluate(
-    frozen_suite: bytes, observations: bytes, *, expected_suite_sha256: str, expected_artifact_sha256: str,
-) -> dict:
+def load_suite(frozen_suite: bytes, expected_suite_sha256: str) -> tuple[dict, dict]:
     if sha256(frozen_suite).hexdigest() != _digest(expected_suite_sha256):
         raise ValueError("The frozen suite does not match its approved digest.")
-    _digest(expected_artifact_sha256)
     suite = _document(frozen_suite)
     _fields(suite, {"schema", "dataset_kind", "query_set_sha256", "corpus_sha256", "thresholds", "cases"})
     if suite["dataset_kind"] != "approved_blind":
@@ -161,7 +158,17 @@ def evaluate(
         raise ValueError("Invalid rate thresholds.")
     if not _in_range(thresholds["p95_ms"], 1, 3_600_000):
         raise ValueError("Invalid latency threshold.")
-    case_kinds = _parse_cases(suite)
+    _digest(suite["query_set_sha256"])
+    _digest(suite["corpus_sha256"])
+    return suite, _parse_cases(suite)
+
+
+def evaluate(
+    frozen_suite: bytes, observations: bytes, *, expected_suite_sha256: str, expected_artifact_sha256: str,
+) -> dict:
+    _digest(expected_artifact_sha256)
+    suite, case_kinds = load_suite(frozen_suite, expected_suite_sha256)
+    thresholds = suite["thresholds"]
 
     recorded = _document(observations)
     _fields(recorded, {"schema", "suite_sha256", "artifact_sha256", "query_set_sha256", "corpus_sha256", "results"})
