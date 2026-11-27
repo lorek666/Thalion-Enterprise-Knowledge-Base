@@ -30,6 +30,7 @@ from dataclasses import dataclass, field
 from email.message import EmailMessage
 from enum import StrEnum
 from hashlib import sha256
+import logging
 import os
 import re
 import smtplib
@@ -63,6 +64,20 @@ __all__ = (
 _DOT_ATOM = re.compile(r"[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-zA-Z0-9!#$%&'*+/=?^_`{|}~-]+)*")
 _DNS_LABEL = re.compile(r"[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?")
 _BEARER_TOKEN = re.compile(r"[A-Za-z0-9_.~+/-]{1,4094}={0,2}")
+
+
+def _redact_http_log_url(record):
+    if record.name == "httpx2" and isinstance(record.args, tuple) and len(record.args) > 1:
+        url = record.args[1]
+        if getattr(url, "query", None):
+            record.args = (record.args[0], url.copy_with(query=None), *record.args[2:])
+    return True
+
+
+# httpx2 logs the full request URL, including secret webhook query parameters.
+if not any(getattr(item, "__name__", None) == _redact_http_log_url.__name__
+           for item in logging.getLogger("httpx2").filters):
+    logging.getLogger("httpx2").addFilter(_redact_http_log_url)
 
 
 class DeliveryStatus(StrEnum):
@@ -334,7 +349,7 @@ class IMWebhookNotificationDelivery:
                     json={"text": "Thalion 有新通知，请登录查看。"},
                 ) as response:
                     status_code = response.status_code
-        except httpx2.HTTPError:
+        except (httpx2.HTTPError, OSError):
             return DeliveryResult.retryable("IM webhook request failed.")
 
         return _http_result(status_code)
@@ -477,7 +492,12 @@ def _idempotency_key(dedupe_key: str) -> str:
 
 
 def _smtp_refused_result(refused: Mapping[str, tuple[int, bytes]]) -> DeliveryResult:
-    if any(500 <= code <= 599 for code, _diagnostic in refused.values()):
+    codes = [
+        value[0]
+        for value in refused.values()
+        if isinstance(value, tuple) and value and isinstance(value[0], int)
+    ]
+    if any(500 <= code <= 599 for code in codes):
         return DeliveryResult.permanent("SMTP rejected the notification recipient.")
     return DeliveryResult.retryable("SMTP temporarily refused the notification recipient.")
 
