@@ -1,4 +1,5 @@
 from datetime import UTC
+from hashlib import sha256
 from uuid import UUID
 
 from psycopg import Connection
@@ -94,10 +95,48 @@ def observe(connection: Connection, call: OperationsCall, source_ref: UUID) -> d
             "digest_mismatch": 0,
             "not_enumerated": 0,
         }
+        difference_details = []
+        local_ref_rows = connection.execute(
+            """
+            SELECT document.source_object_key, document.incarnation, document_ref.public_id,
+                   version_ref.public_id
+            FROM thalion.document AS document
+            JOIN thalion.object_identity AS document_ref
+              ON (document_ref.org_id, document_ref.space_id, document_ref.object_type, document_ref.object_id)
+               = (document.org_id, document.space_id, document.identity_type, document.document_id)
+            LEFT JOIN LATERAL (
+                SELECT version_id
+                FROM thalion.document_version
+                WHERE (org_id, space_id, source_id, document_id, contract_revision)
+                    = (%s, %s, %s, document.document_id, %s)
+                ORDER BY registration_sequence DESC LIMIT 1
+            ) AS latest ON TRUE
+            LEFT JOIN thalion.object_identity AS version_ref
+              ON (version_ref.org_id, version_ref.space_id, version_ref.object_type, version_ref.object_id)
+               = (document.org_id, document.space_id, 'document_version', latest.version_id)
+            WHERE (document.org_id, document.space_id, document.source_id) = (%s, %s, %s)
+            """,
+            (*contract_scope, *contract_scope[:3]),
+        ).fetchall()
+        local_refs = {
+            (row[0], row[1]): {
+                "document_ref": str(row[2]), "version_ref": str(row[3]) if row[3] else None,
+            }
+            for row in local_ref_rows
+        }
         for detail in inventory_row[5]:
             kind = detail[3]
             if kind in difference_counts:
                 difference_counts[kind] += 1
+            if isinstance(detail, list) and len(detail) == 4:
+                difference_details.append({
+                    "object_ref": sha256(
+                        f"{source_ref}:{detail[0]}:{detail[1]}".encode("utf-8")
+                    ).hexdigest()[:24],
+                    "kind": kind,
+                    "has_source_version": detail[2] is not None,
+                    **local_refs.get((detail[0], detail[1]), {"document_ref": None, "version_ref": None}),
+                })
         inventory_reconciliation = {
             "sequence": inventory_row[0],
             "snapshot_ref": str(inventory_row[1]),
@@ -105,6 +144,8 @@ def observe(connection: Connection, call: OperationsCall, source_ref: UUID) -> d
             "entry_count": inventory_row[3],
             "matched_count": inventory_row[4],
             "difference_counts": difference_counts,
+            "difference_details": difference_details,
+            "review_required": bool(difference_details),
             "committed_at": inventory_row[6].astimezone(UTC).isoformat(),
         }
 

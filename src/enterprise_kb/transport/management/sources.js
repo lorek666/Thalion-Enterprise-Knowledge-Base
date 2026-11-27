@@ -192,7 +192,20 @@ function renderInventoryCard(inventory) {
   }
   const counts = inventory.difference_counts;
   const totalDiffs = counts.version_not_registered + counts.digest_mismatch + counts.not_enumerated;
-  if (totalDiffs > 0) item.append(badge(`存在 ${totalDiffs} 项盘点差异`, true));
+  if (totalDiffs > 0) {
+    item.append(badge(`存在 ${totalDiffs} 项盘点差异`, true));
+    item.append(text("p", "请先核对原来源，再由负责人执行撤回或删除确认。系统不会因为漏项自动封禁资料。", "wiki-generation"));
+    const details = text("ul", "", "wiki-generation");
+    for (const detail of (inventory.difference_details ?? []).slice(0, 20)) {
+      const sourceVersion = detail.has_source_version ? "有来源版本" : "来源未返回版本号";
+      const localVersion = detail.version_ref ? `本地版本 ${detail.version_ref}` : "本地没有对应版本";
+      details.append(text("li", `${detail.object_ref} · ${detail.kind} · ${sourceVersion} · ${localVersion}`));
+    }
+    if ((inventory.difference_details ?? []).length > 20) {
+      details.append(text("li", `还有 ${(inventory.difference_details.length - 20)} 项，请通过接口导出完整清单。`));
+    }
+    item.append(details);
+  }
   const grid = text("dl", "", "wiki-counts");
   grid.append(
     metric("清单条目数", inventory.entry_count),

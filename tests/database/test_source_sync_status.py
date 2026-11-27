@@ -247,6 +247,14 @@ def test_sync_status_requires_scoped_owner_grant_and_isolates_watermarks_and_bac
     assert inv["entry_count"] == 3
     assert inv["matched_count"] == 1
     assert inv["difference_counts"] == expected_diffs
+    assert inv["review_required"] is True
+    assert {detail["kind"] for detail in inv["difference_details"]} == {
+        "version_not_registered", "digest_mismatch", "not_enumerated",
+    }
+    assert any(detail["kind"] == "not_enumerated" for detail in inv["difference_details"])
+    assert all(set(detail) == {"object_ref", "kind", "has_source_version", "document_ref", "version_ref"}
+               for detail in inv["difference_details"])
+    assert any(detail["version_ref"] is not None for detail in inv["difference_details"])
 
     cp = body["permission_checkpoint"]
     assert cp["sequence"] == 1
