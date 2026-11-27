@@ -23,6 +23,9 @@ _MAX_SWEEP_PAGES = 400
 _MAX_CURSOR_LENGTH = 2048
 _MAX_CHECKPOINT_LENGTH = 4096
 _PAGE_ID = re.compile(r"[0-9]{1,32}")
+_MICROSOFT_TOKEN_HOSTS = {
+    "login.microsoftonline.com", "login.microsoftonline.us", "login.microsoftonline.de", "login.chinacloudapi.cn",
+}
 
 
 class ConfluenceCloudConnector(_BaseHttpAdapter):
@@ -387,7 +390,10 @@ class SharePointGraphConnector(_BaseHttpAdapter):
     source_system = "sharepoint_graph"
     _DOWNLOAD_HOST_SUFFIXES = (".sharepoint.com", ".sharepoint-df.com", ".1drv.com", ".blob.core.windows.net")
 
-    def __init__(self, config: AuthenticatedEndpointConfig, *, drive_id: str, root_item_id: str = "root", **options):
+    def __init__(
+        self, config: AuthenticatedEndpointConfig, *, drive_id: str, root_item_id: str = "root",
+        token_endpoint: str | None = None, client_id: str | None = None, **options,
+    ):
         super().__init__(config.endpoint, config.credential_ref, timeout_seconds=20, **options)
         endpoint = urlsplit(self._endpoint)
         if endpoint.netloc != "graph.microsoft.com" or endpoint.path not in {"/v1.0", "/beta"}:
@@ -396,12 +402,69 @@ class SharePointGraphConnector(_BaseHttpAdapter):
             raise ConfigValidationError("SharePoint drive_id is invalid.")
         if not isinstance(root_item_id, str) or not re.fullmatch(r"[A-Za-z0-9!._-]{1,255}", root_item_id):
             raise ConfigValidationError("SharePoint root_item_id is invalid.")
+        if token_endpoint is not None:
+            token = urlsplit(token_endpoint)
+            if (
+                token.scheme != "https" or token.netloc not in _MICROSOFT_TOKEN_HOSTS
+                or not token.path.endswith("/oauth2/v2.0/token") or token.query or token.fragment
+            ):
+                raise ConfigValidationError("SharePoint token_endpoint must be a Microsoft identity OAuth v2 endpoint.")
+            if not isinstance(client_id, str) or not re.fullmatch(r"[A-Za-z0-9._-]{1,255}", client_id):
+                raise ConfigValidationError("SharePoint client_id is invalid.")
+        elif client_id is not None:
+            raise ConfigValidationError("SharePoint client_id requires token_endpoint.")
         self._drive_id = drive_id
         self._root_item_id = root_item_id
+        self._token_endpoint = token_endpoint
+        self._client_id = client_id
+        self._token_lock = Lock()
+        self._access_token: str | None = None
+        self._access_token_deadline = 0.0
         self._resource = (
             f"{self._endpoint}/drives/{drive_id}/root/delta"
             if root_item_id == "root" else f"{self._endpoint}/drives/{drive_id}/items/{root_item_id}/delta"
         )
+
+    def _oauth_access_token(self) -> str:
+        now = monotonic()
+        with self._token_lock:
+            if self._access_token is not None and now < self._access_token_deadline:
+                return self._access_token
+            try:
+                client_secret = resolve_secret_ref(self._credential_ref, external_resolver=self._secret_resolver)
+                with self._client() as client:
+                    response = client.post(
+                        self._token_endpoint,
+                        data={
+                            "grant_type": "client_credentials",
+                            "client_id": self._client_id,
+                            "client_secret": client_secret,
+                            "scope": "https://graph.microsoft.com/.default",
+                        },
+                        headers={"Accept": "application/json"},
+                    )
+                if response.status_code != 200:
+                    raise ConnectorPortUnavailable(f"Microsoft identity token endpoint returned HTTP {response.status_code}.")
+                body = _parse_json_strict(response.content)
+                token = body.get("access_token") if isinstance(body, dict) else None
+                expires_in = body.get("expires_in") if isinstance(body, dict) else None
+                if (
+                    not isinstance(token, str) or not 1 <= len(token) <= 4096
+                    or type(expires_in) is not int or not 60 <= expires_in <= 86_400
+                ):
+                    raise ValueError("Invalid Microsoft identity token response.")
+            except ConnectorPortUnavailable:
+                raise
+            except (PortUnavailable, httpx2.HTTPError, ValueError, TypeError, KeyError):
+                raise ConnectorPortUnavailable("Could not obtain the SharePoint OAuth access token.") from None
+            self._access_token = token
+            self._access_token_deadline = now + max(30, expires_in - 60)
+            return token
+
+    def _auth_headers(self) -> dict[str, str]:
+        if self._token_endpoint is None:
+            return super()._auth_headers()
+        return {"Authorization": f"Bearer {self._oauth_access_token()}", "Accept": "application/json"}
 
     def _validate_graph_url(self, raw_url: str) -> str:
         if not isinstance(raw_url, str) or not 0 < len(raw_url) <= 4096 or not raw_url.isprintable() or "\\" in raw_url:
@@ -638,11 +701,15 @@ def load_source_connector_map(reference: str, *, secret_resolver=None) -> Config
                 connector = FeishuWikiConnector(endpoint, app_id=entry["app_id"], space_id=entry["space_id"], secret_resolver=secret_resolver)
             elif entry["type"] == "sharepoint_graph" and set(entry) in (
                 common | {"drive_id"}, common | {"drive_id", "root_item_id"},
+                common | {"drive_id", "token_endpoint", "client_id"},
+                common | {"drive_id", "root_item_id", "token_endpoint", "client_id"},
             ):
                 connector = SharePointGraphConnector(
                     endpoint,
                     drive_id=entry["drive_id"],
                     root_item_id=entry.get("root_item_id", "root"),
+                    token_endpoint=entry.get("token_endpoint"),
+                    client_id=entry.get("client_id"),
                     secret_resolver=secret_resolver,
                 )
             elif entry["type"] == "http" and set(entry) == common | {"source_system"}:

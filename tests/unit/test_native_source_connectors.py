@@ -160,6 +160,45 @@ def test_sharepoint_graph_reads_delta_content_and_inventory():
     assert sum(request.url.path.endswith("/content") for request in requests) == 2
 
 
+def test_sharepoint_graph_refreshes_oauth_client_credentials_for_unattended_sync():
+    source_ref = uuid4()
+    token_requests = []
+    graph_requests = []
+
+    def respond(request):
+        if request.url.host == "login.microsoftonline.com":
+            token_requests.append(request)
+            assert request.method == "POST"
+            assert request.content.decode() == (
+                "grant_type=client_credentials&client_id=client-id&client_secret=client-secret&"
+                "scope=https%3A%2F%2Fgraph.microsoft.com%2F.default"
+            )
+            return httpx2.Response(200, json={"access_token": "oauth-token", "expires_in": 3600})
+        graph_requests.append(request)
+        assert request.headers["Authorization"] == "Bearer oauth-token"
+        if request.url.path.endswith("/drives/drive-1/root/delta"):
+            return httpx2.Response(200, json={
+                "value": [],
+                "@odata.deltaLink": "https://graph.microsoft.com/v1.0/drives/drive-1/root/delta?$deltatoken=stable",
+            })
+        raise AssertionError(request.url)
+
+    connector = source_connectors.SharePointGraphConnector(
+        AuthenticatedEndpointConfig(
+            "https://graph.microsoft.com/v1.0", "vault:graph/client-secret",
+        ),
+        drive_id="drive-1",
+        token_endpoint="https://login.microsoftonline.com/tenant/oauth2/v2.0/token",
+        client_id="client-id",
+        transport=httpx2.MockTransport(respond),
+        secret_resolver=lambda _: "client-secret",
+    )
+    connector.fetch_delta_page(source_ref, None)
+    connector.fetch_delta_page(source_ref, None)
+    assert len(token_requests) == 1
+    assert len(graph_requests) == 2
+
+
 def test_sharepoint_resumes_bounded_chunks_from_a_legacy_cursor():
     source_ref = uuid4()
     resource = "https://graph.microsoft.com/v1.0/drives/drive-1/root/delta"
@@ -252,6 +291,12 @@ def test_connector_map_accepts_native_feishu_and_sharepoint_types():
         str(sharepoint_ref): {
             "type": "sharepoint_graph", "endpoint": "https://graph.microsoft.com/v1.0", "credential_ref": "vault:graph/token",
             "drive_id": "drive-1",
+        },
+        str(uuid4()): {
+            "type": "sharepoint_graph", "endpoint": "https://graph.microsoft.com/v1.0",
+            "credential_ref": "vault:graph/client-secret", "drive_id": "drive-2",
+            "token_endpoint": "https://login.microsoftonline.com/tenant/oauth2/v2.0/token",
+            "client_id": "client-id",
         },
     }
     router = source_connectors.load_source_connector_map(
