@@ -13,6 +13,14 @@ read_configuration() {
   [[ $stanza =~ ^[a-zA-Z0-9][a-zA-Z0-9_-]{0,63}$ ]] || fail 'Set THALION_BACKUP_STANZA explicitly.'
   [[ $database =~ ^[a-zA-Z_][a-zA-Z0-9_]{0,62}$ ]] || fail 'Set PGDATABASE to the Thalion database name.'
   [[ -n ${RESTIC_REPOSITORY:-} && -n ${RESTIC_PASSWORD_FILE:-} ]] || fail 'Set RESTIC_REPOSITORY and RESTIC_PASSWORD_FILE.'
+  if [[ -n ${PGBACKREST_REPO1_CIPHER_PASS_FILE:-} ]]; then
+    local pass_file=${PGBACKREST_REPO1_CIPHER_PASS_FILE}
+    [[ $pass_file = /* && -f $pass_file && ! -L $pass_file && -O $pass_file ]] || fail 'Set PGBACKREST_REPO1_CIPHER_PASS_FILE to a private file owned by the backup user.'
+    [[ $(stat -c '%a' "$pass_file") == 600 ]] || fail 'The pgBackRest cipher passphrase file must have mode 0600.'
+    PGBACKREST_REPO1_CIPHER_PASS=$(<"$pass_file")
+    export PGBACKREST_REPO1_CIPHER_PASS
+    unset PGBACKREST_REPO1_CIPHER_PASS_FILE
+  fi
 }
 
 backup_label() {

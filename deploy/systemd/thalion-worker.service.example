@@ -26,7 +26,8 @@ ExecStartPre=/opt/thalion-venv/bin/thalion-worker \
 # 默认每五分钟执行一轮；需要更短间隔时修改下面的秒数并重新加载单元
 ExecStart=/opt/thalion-venv/bin/thalion-worker \
     --mode production \
-    --interval-seconds 300
+    --interval-seconds 300 \
+    --reconcile
 
 Restart=on-failure
 RestartSec=5

@@ -72,6 +72,56 @@ def test_feishu_rejects_unsupported_wiki_objects_without_advancing():
         connector.fetch_delta_page(uuid4(), None)
 
 
+def test_feishu_resumes_nested_pages_and_starts_a_new_sweep():
+    source_ref = uuid4()
+    pages = {
+        (None, None): ([('travel', True)], 'root-next'),
+        ('travel', None): ([('hotels', True)], 'travel-next'),
+        ('hotels', None): ([('limits', False)], None),
+        ('travel', 'travel-next'): ([('flights', False)], None),
+        (None, 'root-next'): ([('expenses', False)], None),
+    }
+
+    def respond(request):
+        if request.url.path.endswith('/tenant_access_token/internal'):
+            return httpx2.Response(200, json={"code": 0, "tenant_access_token": "tenant-token", "expire": 7200})
+        if request.url.path.endswith('/nodes'):
+            rows, next_token = pages[(request.url.params.get('parent_node_token'), request.url.params.get('page_token'))]
+            return httpx2.Response(200, json={
+                "code": 0, "data": {"items": [
+                    {"node_token": name, "obj_token": name, "obj_type": "docx", "title": name, "has_child": children}
+                    for name, children in rows
+                ], "has_more": next_token is not None, "page_token": next_token},
+            })
+        if request.url.path.endswith('/raw_content'):
+            return httpx2.Response(200, json={"code": 0, "data": {"content": request.url.path}})
+        raise AssertionError(request.url)
+
+    def connector():
+        return source_connectors.FeishuWikiConnector(
+            AuthenticatedEndpointConfig("https://open.feishu.cn", "vault:feishu/app-secret"),
+            app_id="cli_test", space_id="space-1", transport=httpx2.MockTransport(respond),
+            secret_resolver=lambda _: "app-secret",
+        )
+
+    cursor = None
+    expected = ["travel", "hotels", "limits", "flights", "expenses"]
+    checkpoints = set()
+    for index, name in enumerate(expected):
+        page = connector().fetch_delta_page(source_ref, cursor)
+        assert [item["object_key"] for item in page.items] == [f"feishu:{name}"]
+        assert page.has_more == (index < len(expected) - 1)
+        assert page.previous_cursor == cursor and page.through_cursor not in checkpoints
+        cursor = page.through_cursor
+        checkpoints.add(cursor)
+
+    inventory = connector().fetch_full_inventory(source_ref)
+    assert inventory.complete and inventory.stable_object_keys == {f"feishu:{name}" for name in expected}
+    next_sweep = connector().fetch_delta_page(source_ref, cursor)
+    assert next_sweep.through_cursor not in checkpoints
+    assert [item["object_key"] for item in next_sweep.items] == ["feishu:travel"]
+
+
 def test_sharepoint_graph_reads_delta_content_and_inventory():
     source_ref = uuid4()
     content = b"Travel policy\nHotel limit: 500"
@@ -81,6 +131,7 @@ def test_sharepoint_graph_reads_delta_content_and_inventory():
         requests.append(request)
         assert request.headers["Authorization"] == "Bearer graph-token"
         if request.url.path.endswith("/drives/drive-1/root/delta"):
+            assert request.url.params["$top"] == "5"
             return httpx2.Response(200, json={
                 "value": [{
                     "id": "item-1", "name": "travel.md", "eTag": "etag-1",
@@ -107,6 +158,51 @@ def test_sharepoint_graph_reads_delta_content_and_inventory():
     inventory = connector.fetch_full_inventory(source_ref)
     assert inventory.complete and inventory.stable_object_keys == {"sharepoint:item-1"}
     assert sum(request.url.path.endswith("/content") for request in requests) == 2
+
+
+def test_sharepoint_resumes_bounded_chunks_from_a_legacy_cursor():
+    source_ref = uuid4()
+    resource = "https://graph.microsoft.com/v1.0/drives/drive-1/root/delta"
+    legacy_link, delta_link = f"{resource}?$skiptoken=legacy", f"{resource}?$deltatoken=stable"
+    rows = [{"id": "folder-1", "name": "Policies", "folder": {"childCount": 23}}] + [
+        {"id": f"item-{number}", "name": f"file-{number}.md", "eTag": "etag-1", "file": {"mimeType": "text/markdown"}}
+        for number in range(23)
+    ]
+    downloads = []
+
+    def respond(request):
+        if str(request.url) in {legacy_link, resource}:
+            return httpx2.Response(200, json={"value": rows, "@odata.deltaLink": delta_link})
+        if str(request.url) == delta_link:
+            return httpx2.Response(200, json={"value": [], "@odata.deltaLink": delta_link})
+        if request.url.path.endswith('/content'):
+            downloads.append(request.url.path.split('/')[-2])
+            return httpx2.Response(200, content=b"policy text")
+        raise AssertionError(request.url)
+
+    def connector():
+        return source_connectors.SharePointGraphConnector(
+            AuthenticatedEndpointConfig("https://graph.microsoft.com/v1.0", "vault:graph/token"),
+            drive_id="drive-1", transport=httpx2.MockTransport(respond), secret_resolver=lambda _: "graph-token",
+        )
+
+    cursor = json.dumps({"scope": connector()._scope(source_ref), "url": legacy_link}, separators=(",", ":"))
+    expected = [f"item-{number}" for number in range(23)]
+    for index, limit in enumerate((5, 10, 15, 20, 23)):
+        page = connector().fetch_delta_page(source_ref, cursor)
+        assert [item["object_key"] for item in page.items] == [f"sharepoint:{key}" for key in expected[index * 5:limit]]
+        assert downloads == expected[:limit]
+        assert page.has_more == (limit < len(expected))
+        assert page.previous_cursor == cursor and page.through_cursor != cursor
+        cursor = page.through_cursor
+        if index == 0:
+            rows[1], rows[2] = rows[2], rows[1]
+            with pytest.raises(ConnectorPortUnavailable):
+                connector().fetch_delta_page(source_ref, cursor)
+            rows[1], rows[2] = rows[2], rows[1]
+
+    unchanged = connector().fetch_delta_page(source_ref, cursor)
+    assert not unchanged.items and not unchanged.has_more and unchanged.through_cursor == cursor
 
 
 def test_sharepoint_rejects_delta_links_outside_graph():

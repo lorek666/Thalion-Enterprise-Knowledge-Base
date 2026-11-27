@@ -21,6 +21,7 @@ _MAX_PAGE_BYTES = 16 * 1024 * 1024
 _MAX_BODY_BYTES = 2 * 1024 * 1024
 _MAX_SWEEP_PAGES = 400
 _MAX_CURSOR_LENGTH = 2048
+_MAX_CHECKPOINT_LENGTH = 4096
 _PAGE_ID = re.compile(r"[0-9]{1,32}")
 
 
@@ -249,8 +250,12 @@ class FeishuWikiConnector(_BaseHttpAdapter):
             raise ValueError("Feishu document exceeds the size limit.")
         return payload
 
-    def _read_nodes(self, page_token: str | None) -> tuple[tuple[dict, ...], str | None]:
+    def _read_nodes(
+        self, parent: str | None, page_token: str | None,
+    ) -> tuple[tuple[dict, ...], list[str], str | None]:
         params = {"page_size": str(_PAGE_SIZE)}
+        if parent is not None:
+            params["parent_node_token"] = parent
         if page_token is not None:
             params["page_token"] = page_token
         body = self._json_get(self._resource, params=params)
@@ -260,24 +265,27 @@ class FeishuWikiConnector(_BaseHttpAdapter):
         next_token = data.get("page_token") if isinstance(data, dict) else None
         if (
             not isinstance(rows, list) or len(rows) > _PAGE_SIZE or type(has_more) is not bool
-            or (has_more and not self._remote_cursor(next_token))
+            or (has_more and (not self._remote_cursor(next_token) or next_token == page_token))
             or (not has_more and next_token not in (None, ""))
         ):
             raise ConnectorPortUnavailable("Feishu wiki pagination payload is malformed.")
-        items = []
+        items, children = [], []
         for row in rows:
             if not isinstance(row, dict):
                 raise ConnectorPortUnavailable("Feishu wiki returned an invalid node.")
             node_token, obj_token, obj_type, title = (
                 row.get("node_token"), row.get("obj_token"), row.get("obj_type"), row.get("title")
             )
+            has_child = row.get("has_child", False)
             if (
-                not isinstance(node_token, str) or not self._remote_cursor(node_token)
-                or not isinstance(obj_token, str) or not self._remote_cursor(obj_token)
+                not self._remote_cursor(node_token) or node_token == parent
+                or not self._remote_cursor(obj_token) or type(has_child) is not bool
                 or obj_type not in {"docx", "doc"}
                 or not isinstance(title, str) or not 1 <= len(title.strip()) <= 300 or not title.isprintable()
             ):
                 raise ConnectorPortUnavailable("Feishu wiki returned an unsupported or invalid node.")
+            if has_child:
+                children.append(node_token)
             try:
                 payload = self._read_document(obj_token, obj_type)
             except ConnectorPortUnavailable:
@@ -296,46 +304,81 @@ class FeishuWikiConnector(_BaseHttpAdapter):
             })
         if len({item["object_key"] for item in items}) != len(items):
             raise ConnectorPortUnavailable("Feishu wiki returned duplicate nodes.")
-        return tuple(items), (next_token or None)
+        return tuple(items), children, (next_token or None)
+
+    def _walk_page(
+        self, pending: list[list[str | None]],
+    ) -> tuple[tuple[dict, ...], list[list[str | None]]]:
+        (parent, page_token), *remaining = pending
+        items, children, next_token = self._read_nodes(parent, page_token)
+        following = [[node, None] for node in children]
+        if next_token is not None:
+            following.append([parent, next_token])
+        return items, following + remaining
 
     def _scope(self, source_ref: UUID) -> str:
         return sha256(f"{source_ref}:{self._resource}".encode()).hexdigest()[:24]
 
     def fetch_delta_page(self, source_ref: UUID, cursor: str | None) -> ConnectorDeltaPage:
-        scope, page, page_token = self._scope(source_ref), 1, None
+        scope, sweep, page = self._scope(source_ref), 1, 1
+        pending = [[None, None]]
         if cursor is not None:
             try:
-                raw = json.loads(cursor)
-                if (
-                    not isinstance(raw, list) or len(raw) != 3 or raw[0] != scope or type(raw[1]) is not int
-                    or not 1 <= raw[1] <= _MAX_SWEEP_PAGES or (raw[2] is not None and not self._remote_cursor(raw[2]))
-                ):
+                if len(cursor) > _MAX_CHECKPOINT_LENGTH:
                     raise ValueError
-                page, page_token = raw[1] + 1, raw[2]
+                raw = json.loads(cursor)
+                if not isinstance(raw, list) or len(raw) not in (3, 4) or raw[0] != scope:
+                    raise ValueError
+                if len(raw) == 3:
+                    _, previous_page, legacy_token = raw
+                    if legacy_token is not None and not self._remote_cursor(legacy_token):
+                        raise ValueError
+                    pending = [[None, legacy_token]]
+                    page = previous_page + 1
+                else:
+                    _, sweep, previous_page, stored = raw
+                    if (
+                        type(sweep) is not int or not 1 <= sweep < 2**53 or not isinstance(stored, list)
+                        or any(not isinstance(entry, list) or len(entry) != 2 or any(
+                            token is not None and not self._remote_cursor(token) for token in entry
+                        ) for entry in stored)
+                    ):
+                        raise ValueError
+                    if stored:
+                        pending = stored
+                    else:
+                        sweep += 1
+                if type(previous_page) is not int or not 1 <= previous_page <= _MAX_SWEEP_PAGES:
+                    raise ValueError
+                if len(raw) == 4 and stored:
+                    page = previous_page + 1
             except (TypeError, ValueError, json.JSONDecodeError, RecursionError):
                 raise ConnectorPortUnavailable("Feishu wiki cursor is invalid for this source contract.") from None
         if page > _MAX_SWEEP_PAGES:
             raise ConnectorPortUnavailable("Feishu wiki exceeds the page limit for one sync.")
-        items, next_token = self._read_nodes(page_token)
-        through_cursor = json.dumps([scope, page, next_token], separators=(",", ":"))
-        return ConnectorDeltaPage(cursor, through_cursor, items, next_token is not None)
+        items, pending = self._walk_page(pending)
+        through_cursor = json.dumps([scope, sweep, page, pending], separators=(",", ":"))
+        if len(through_cursor) > _MAX_CHECKPOINT_LENGTH:
+            raise ConnectorPortUnavailable("Feishu wiki exceeds the saved pagination limit.")
+        return ConnectorDeltaPage(cursor, through_cursor, items, bool(pending))
 
     def fetch_full_inventory(self, source_ref: UUID) -> ConnectorInventory:
         entries = {}
-        page_token = None
+        pending = [[None, None]]
         seen = set()
         for _ in range(_MAX_SWEEP_PAGES):
-            items, page_token = self._read_nodes(page_token)
+            position = tuple(pending[0])
+            if position in seen:
+                break
+            seen.add(position)
+            items, pending = self._walk_page(pending)
             for item in items:
                 key = item["object_key"]
                 if key in entries:
                     raise ConnectorPortUnavailable("Feishu wiki inventory changed during enumeration.")
                 entries[key] = {field: item[field] for field in ("object_key", "source_version_key", "content_sha256")}
-            if page_token is None:
+            if not pending:
                 return ConnectorInventory(str(uuid4()), datetime.now(UTC), frozenset(entries), True, tuple(entries.values()))
-            if page_token in seen:
-                break
-            seen.add(page_token)
         raise ConnectorPortUnavailable("Feishu wiki inventory pagination did not finish.")
 
 
@@ -416,12 +459,12 @@ class SharePointGraphConnector(_BaseHttpAdapter):
         except (PortUnavailable, httpx2.HTTPError, ValueError, TypeError):
             raise ConnectorPortUnavailable("Could not download the SharePoint document.") from None
 
-    def _items(self, rows: list[object]) -> tuple[dict, ...]:
-        items = []
+    def _file_metadata(self, rows: list[object]) -> list[tuple[str, dict]]:
+        files, seen = [], set()
         for row in rows:
             if not isinstance(row, dict):
                 raise ConnectorPortUnavailable("Microsoft Graph returned an invalid drive item.")
-            if "deleted" in row:
+            if "deleted" in row or isinstance(row.get("folder"), dict):
                 continue
             identifier, title, file_info = row.get("id"), row.get("name"), row.get("file")
             if (
@@ -430,25 +473,33 @@ class SharePointGraphConnector(_BaseHttpAdapter):
                 or not isinstance(file_info, dict)
             ):
                 raise ConnectorPortUnavailable("Microsoft Graph returned an unsupported drive item.")
-            payload = self._read_content(identifier)
-            digest = sha256(payload).hexdigest()
+            if identifier in seen:
+                raise ConnectorPortUnavailable("Microsoft Graph returned duplicate drive items.")
+            seen.add(identifier)
             media_type = file_info.get("mimeType", "application/octet-stream")
             if not isinstance(media_type, str) or not 1 <= len(media_type) <= 200 or not media_type.isprintable():
                 media_type = "application/octet-stream"
             version = row.get("eTag") or row.get("cTag") or row.get("lastModifiedDateTime")
             if not isinstance(version, str) or not 1 <= len(version) <= 512 or not version.isprintable():
                 raise ConnectorPortUnavailable("Microsoft Graph drive item has no stable version.")
-            items.append({
+            files.append((identifier, {
                 "object_key": f"sharepoint:{identifier}", "source_version_key": f"version:{version}",
                 "display_name": title.strip(), "version_label": version, "media_type": media_type,
-                "content_sha256": digest, "content_base64": b64encode(payload).decode("ascii"),
+            }))
+        return files
+
+    def _items(self, files: list[tuple[str, dict]]) -> tuple[dict, ...]:
+        items = []
+        for identifier, fields in files:
+            payload = self._read_content(identifier)
+            items.append({
+                **fields, "content_sha256": sha256(payload).hexdigest(),
+                "content_base64": b64encode(payload).decode("ascii"),
             })
-        if len({item["object_key"] for item in items}) != len(items):
-            raise ConnectorPortUnavailable("Microsoft Graph returned duplicate drive items.")
         return tuple(items)
 
-    def _read_delta(self, url: str, *, initial: bool) -> tuple[tuple[dict, ...], str, bool]:
-        body = self._json_get(url, params={"$top": "200"} if initial else None)
+    def _read_delta(self, url: str) -> tuple[list[tuple[str, dict]], str, bool]:
+        body = self._json_get(url, params={"$top": str(_PAGE_SIZE)} if url == self._resource else None)
         next_url = body.get("@odata.nextLink")
         delta_url = body.get("@odata.deltaLink")
         if next_url is not None and not isinstance(next_url, str):
@@ -462,45 +513,69 @@ class SharePointGraphConnector(_BaseHttpAdapter):
             continuation = self._validate_graph_url(continuation)
         except ValueError:
             raise ConnectorPortUnavailable("Microsoft Graph returned a pagination link outside the configured API.") from None
-        if continuation == url:
+        files = self._file_metadata(body["value"])
+        if continuation == url and (files or next_url is not None):
             raise ConnectorPortUnavailable("Microsoft Graph pagination stalled.")
-        return self._items(body["value"]), continuation, next_url is not None
+        return files, continuation, next_url is not None
 
     def _scope(self, source_ref: UUID) -> str:
         return sha256(f"{source_ref}:{self._resource}".encode()).hexdigest()[:24]
 
     def fetch_delta_page(self, source_ref: UUID, cursor: str | None) -> ConnectorDeltaPage:
         scope = self._scope(source_ref)
-        url, initial = self._resource, True
+        url, offset, fingerprint = self._resource, 0, None
         if cursor is not None:
             try:
-                raw = json.loads(cursor)
-                if not isinstance(raw, dict) or raw.get("scope") != scope or not isinstance(raw.get("url"), str):
+                if len(cursor) > _MAX_CHECKPOINT_LENGTH:
                     raise ValueError
-                url, initial = self._validate_graph_url(raw["url"]), False
-            except (TypeError, ValueError, json.JSONDecodeError, RecursionError):
+                raw = json.loads(cursor)
+                if not isinstance(raw, dict) or raw.get("scope") != scope:
+                    raise ValueError
+                url = self._validate_graph_url(raw["url"])
+                if set(raw) == {"scope", "url", "offset", "fingerprint"}:
+                    offset, fingerprint = raw["offset"], raw["fingerprint"]
+                    if (type(offset) is not int or offset < _PAGE_SIZE or offset % _PAGE_SIZE
+                        or not isinstance(fingerprint, str) or not re.fullmatch(r"[0-9a-f]{64}", fingerprint)):
+                        raise ValueError
+                elif set(raw) != {"scope", "url"}:
+                    raise ValueError
+            except (TypeError, ValueError, KeyError, RecursionError):
                 raise ConnectorPortUnavailable("SharePoint cursor is invalid for this source contract.") from None
-        items, continuation, has_more = self._read_delta(url, initial=initial)
-        through_cursor = json.dumps({"scope": scope, "url": continuation}, separators=(",", ":"))
-        return ConnectorDeltaPage(cursor, through_cursor, items, has_more)
+        files, continuation, has_more = self._read_delta(url)
+        end = offset + _PAGE_SIZE
+        checkpoint = {"scope": scope, "url": continuation}
+        if offset or len(files) > end:
+            observed = sha256(json.dumps(files, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
+            if offset and (offset >= len(files) or fingerprint != observed):
+                raise ConnectorPortUnavailable("SharePoint page changed before processing could resume.")
+            if len(files) > end:
+                checkpoint.update(url=url, offset=end, fingerprint=observed)
+                has_more = True
+        through_cursor = json.dumps(checkpoint, separators=(",", ":"))
+        if len(through_cursor) > _MAX_CHECKPOINT_LENGTH:
+            raise ConnectorPortUnavailable("SharePoint pagination link is too long to save.")
+        return ConnectorDeltaPage(cursor, through_cursor, self._items(files[offset:end]), has_more)
 
     def fetch_full_inventory(self, source_ref: UUID) -> ConnectorInventory:
         entries = {}
-        url, initial = self._resource, True
+        url = self._resource
         seen = set()
         for _ in range(_MAX_SWEEP_PAGES):
-            items, continuation, has_more = self._read_delta(url, initial=initial)
-            for item in items:
+            files, continuation, has_more = self._read_delta(url)
+            for identifier, item in files:
                 key = item["object_key"]
                 if key in entries:
                     raise ConnectorPortUnavailable("SharePoint inventory changed during enumeration.")
-                entries[key] = {field: item[field] for field in ("object_key", "source_version_key", "content_sha256")}
+                entries[key] = {
+                    "object_key": key, "source_version_key": item["source_version_key"],
+                    "content_sha256": sha256(self._read_content(identifier)).hexdigest(),
+                }
             if not has_more:
                 return ConnectorInventory(str(uuid4()), datetime.now(UTC), frozenset(entries), True, tuple(entries.values()))
             if continuation in seen:
                 break
             seen.add(continuation)
-            url, initial = continuation, False
+            url = continuation
         raise ConnectorPortUnavailable("SharePoint inventory pagination did not finish.")
 
     def fetch_document_bytes(self, source_ref: UUID, download_ref: str, digest: bytes) -> bytes:

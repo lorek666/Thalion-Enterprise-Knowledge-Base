@@ -667,6 +667,29 @@ def test_production_browser_sso_maps_standard_claims_to_registered_employee(runt
         assert login(["kb-readers"]).status_code == 403
 
 
+def test_production_browser_sso_requires_explicit_access_mapping(runtime_db):
+    from enterprise_kb.transport.local import _build_production_oidc_sso
+
+    _, _, database_url = runtime_db
+    config = IdentityEndpointConfig(
+        "https://idp.corp.example", "api-audience", "https://idp.corp.example/jwks"
+    )
+    identity = OidcJwksIdentityVerifier(config, transport=httpx2.MockTransport(lambda _: httpx2.Response(200)))
+    deployment = type("Deployment", (), {"identity": config})()
+    with pytest.raises(ConfigValidationError, match="ACCESS_MAP_FILE"):
+        _build_production_oidc_sso(
+            deployment,
+            {
+                "THALION_OIDC_AUTHORIZATION_ENDPOINT": "https://idp.corp.example/authorize",
+                "THALION_OIDC_TOKEN_ENDPOINT": "https://idp.corp.example/token",
+                "THALION_OIDC_CLIENT_ID": "web-idp-client",
+                "THALION_OIDC_REDIRECT_URI": "https://kb.corp.example/auth/oidc/callback",
+            },
+            local.production_connection_factory(database_url),
+            identity,
+        )
+
+
 def test_thalion_serve_production_check_config_verifies_env_ports_and_head(
     database_url, monkeypatch, capsys
 ):

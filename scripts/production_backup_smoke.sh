@@ -29,11 +29,16 @@ install -d -m 700 -o postgres -g postgres /backup-test/postgres /backup-test/res
 printf '%s\n' 'synthetic-backup-test-only' > /backup-test/restic-password
 chown postgres:postgres /backup-test/restic-password
 chmod 600 /backup-test/restic-password
-printf '%s\n' '[global]' 'repo1-path=/backup-test/postgres' 'repo1-retention-full=2' 'start-fast=y' \
+printf '%s\n' 'synthetic-pgbackrest-cipher-passphrase' > /backup-test/pgbackrest-cipher-pass
+chown postgres:postgres /backup-test/pgbackrest-cipher-pass
+chmod 600 /backup-test/pgbackrest-cipher-pass
+printf '%s\n' '[global]' 'repo1-path=/backup-test/postgres' 'repo1-retention-full=2' 'repo1-cipher-type=aes-256-cbc' \
+  'repo1-cipher-pass=synthetic-pgbackrest-cipher-passphrase' 'start-fast=y' \
   '[thalion]' 'pg1-path=/work/pgdata' 'pg1-socket-path=/work/socket' > /etc/pgbackrest.conf
 printf '%s\n' '[live]' 'type = alias' 'remote = /work/live' > /work/rclone.conf
 export PGHOST=/work/socket PGDATABASE=thalion_rehearsal RCLONE_CONFIG=/work/rclone.conf
 export RESTIC_REPOSITORY=/backup-test/restic RESTIC_PASSWORD_FILE=/backup-test/restic-password
+export PGBACKREST_REPO1_CIPHER_PASS=$(cat /backup-test/pgbackrest-cipher-pass)
 export THALION_BACKUP_STANZA=thalion THALION_BACKUP_STATE_DIR=/work/state THALION_BACKUP_OBJECT_REMOTE=live:originals
 
 runuser -u postgres -- initdb -D /work/pgdata --auth-local=trust --auth-host=reject --no-locale >/dev/null
@@ -60,8 +65,9 @@ SOURCE
 
 docker exec -i "$restore_name" bash -seu -o pipefail <<'RESTORE'
 install -d -m 700 -o postgres -g postgres /restore-test
-printf '%s\n' '[global]' 'repo1-path=/backup-test/postgres' '[thalion]' > /etc/pgbackrest.conf
+printf '%s\n' '[global]' 'repo1-path=/backup-test/postgres' 'repo1-cipher-type=aes-256-cbc' '[thalion]' > /etc/pgbackrest.conf
 export PGDATABASE=thalion_rehearsal RESTIC_REPOSITORY=/backup-test/restic RESTIC_PASSWORD_FILE=/backup-test/restic-password
+export PGBACKREST_REPO1_CIPHER_PASS=$(cat /backup-test/pgbackrest-cipher-pass)
 export THALION_BACKUP_STANZA=thalion THALION_RESTORE_ISOLATED=1
 label=$(cat /backup-test/label)
 runuser -u postgres -- bash /tmp/thalion-backup.sh restore "$label" /restore-test/point

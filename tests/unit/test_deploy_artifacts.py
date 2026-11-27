@@ -66,6 +66,7 @@ def test_systemd_and_synthetic_profile_examples_match_runtime_contract(tmp_path)
         "--mode production",
         "--check-config",
         "--interval-seconds 300",
+        "--reconcile",
         "NoNewPrivileges=yes",
         "ProtectSystem=strict",
         "PrivateTmp=yes",

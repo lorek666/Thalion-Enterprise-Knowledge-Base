@@ -415,6 +415,11 @@ def _build_production_oidc_sso(
             "OIDC SSO requires THALION_OIDC_AUTHORIZATION_ENDPOINT, THALION_OIDC_TOKEN_ENDPOINT, "
             "THALION_OIDC_CLIENT_ID, and THALION_OIDC_REDIRECT_URI together."
         )
+    if not mapping_path:
+        raise ConfigValidationError(
+            "OIDC SSO requires THALION_OIDC_ACCESS_MAP_FILE to map identity-provider groups "
+            "to a Thalion space and operations."
+        )
     client_secret = resolve_secret_ref(secret_ref) if secret_ref else None
     browser_access = None
     if mapping_path:
@@ -462,7 +467,7 @@ def _run_production_mode(arguments) -> int:
         registry = replace(registry, identity=identity)
         metrics_ref = (os.environ.get("THALION_METRICS_TOKEN_REF") or "").strip()
         metrics_token = resolve_secret_ref(metrics_ref) if metrics_ref else None
-        if metrics_token is not None and not re.fullmatch(r"[A-Za-z0-9_.~+/-]{32,512}", metrics_token):
+        if metrics_token is not None and not re.fullmatch(r"[A-Za-z0-9_.~+/=-]{32,512}", metrics_token):
             raise ConfigValidationError("THALION_METRICS_TOKEN_REF must resolve to a dedicated bearer token.")
         with connect() as connection:
             revisions = _verify_shared_tables(connection)
