@@ -116,7 +116,7 @@
   <template id="readers-row">
     <fieldset class="repair-change">
       <legend></legend>
-      <label><span class="sr-only">主体编号</span><span aria-hidden="true">允许/禁止哪位员工或群组（填编号）</span><input name="subject_id" maxlength="36" spellcheck="false" placeholder="员工或群组编号（UUID）" required></label>
+      <label><span class="sr-only">主体编号</span><span aria-hidden="true">选择员工或群组</span><input name="subject_id" maxlength="255" autocomplete="off" placeholder="按姓名、工号、邮箱或群组搜索" required><div class="result-list subject-picker-options" role="listbox" hidden></div></label>
       <label><span class="sr-only">规则结果</span><span aria-hidden="true">给看还是不给看</span><select name="effect"><option value="allow">允许查看</option><option value="deny">禁止查看</option></select></label>
       <label><span class="sr-only">片段编号</span><span aria-hidden="true">只限某一条款段落时填编号（整库适用留空）</span><input name="passage_id" maxlength="36" spellcheck="false" placeholder="单条段落编号（UUID）"></label>
       <label class="repair-option"><input name="whole_source" type="checkbox"><span class="sr-only">应用于整个来源</span><span aria-hidden="true">对整个文件库全部制度生效</span></label>

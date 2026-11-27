@@ -222,6 +222,174 @@ body.manage-app {
   max-width: 42rem;
   margin-top: 0.65rem;
 }
+.wiki-structured-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin: 0.45rem 0 0.55rem;
+}
+.wiki-structured-editor {
+  margin: 0.55rem 0 0.9rem;
+  padding: 0.85rem;
+  border: 1px solid var(--gold-border);
+  border-radius: 10px;
+  background: #fffdf8;
+}
+.wiki-editor-heading,
+.wiki-block-toolbar,
+.wiki-block-actions {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.65rem;
+}
+.wiki-editor-heading {
+  justify-content: space-between;
+  margin-bottom: 0.65rem;
+}
+.wiki-editor-heading h3 {
+  margin: 0;
+  font-size: 0.95rem;
+}
+.wiki-block-toolbar {
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--line-soft);
+  background: #fff;
+}
+.wiki-block-toolbar label {
+  margin: 0;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+.wiki-block-toolbar select {
+  width: auto;
+  min-width: 7rem;
+  margin: 0;
+}
+.wiki-draft-blocks {
+  display: grid;
+  gap: 0.55rem;
+  margin: 0.7rem 0;
+  padding-left: 1.45rem;
+}
+.wiki-draft-block {
+  min-width: 0;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--line-soft);
+  border-radius: 8px;
+  background: #fff;
+}
+.wiki-draft-block-body {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.wiki-draft-block-body > :first-child {
+  margin-top: 0;
+}
+.wiki-draft-block-body > :last-child {
+  margin-bottom: 0;
+}
+.wiki-block-actions {
+  justify-content: flex-end;
+  margin-top: 0.45rem;
+}
+.wiki-block-editor {
+  padding: 0.75rem;
+  border-top: 1px solid var(--gold-border);
+  background: #fff;
+}
+.wiki-block-editor label {
+  display: block;
+  margin-top: 0.55rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+.wiki-block-editor label:first-child {
+  margin-top: 0;
+}
+.wiki-block-editor input,
+.wiki-block-editor textarea,
+.wiki-block-editor select {
+  margin-top: 0.25rem;
+}
+.wiki-block-editor .work-buttons {
+  margin-top: 0.65rem;
+}
+.wiki-table-field-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.65rem;
+  margin-bottom: 0.55rem;
+}
+.wiki-table-field-row label {
+  flex: 1 1 7rem;
+  min-width: 0;
+  margin: 0;
+}
+.wiki-markdown-preview {
+  margin: 0.55rem 0;
+  padding: 0.8rem 0.95rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+  color: var(--ink-primary);
+  line-height: 1.72;
+  overflow-wrap: anywhere;
+}
+.wiki-markdown-preview h1,
+.wiki-markdown-preview h2,
+.wiki-markdown-preview h3,
+.wiki-markdown-preview h4,
+.wiki-markdown-preview h5,
+.wiki-markdown-preview h6 {
+  margin: 0.75rem 0 0.35rem;
+  color: var(--ink-primary);
+}
+.wiki-markdown-preview p {
+  margin: 0.45rem 0;
+}
+.wiki-markdown-content blockquote {
+  margin: 0.55rem 0;
+  padding: 0.35rem 0.7rem;
+  border-left: 3px solid var(--gold-main);
+  color: var(--ink-secondary);
+}
+.wiki-markdown-content pre {
+  margin: 0.55rem 0;
+  padding: 0.7rem 0.8rem;
+  overflow-x: auto;
+  white-space: pre;
+  background: #f7f4ed;
+  border: 1px solid var(--line-soft);
+  border-radius: 7px;
+}
+.wiki-table-scroll {
+  max-width: 100%;
+  overflow-x: auto;
+}
+.wiki-markdown-content table {
+  width: 100%;
+  margin: 0.65rem 0;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+.wiki-markdown-content th,
+.wiki-markdown-content td {
+  padding: 0.45rem 0.55rem;
+  border: 1px solid var(--line-soft);
+  text-align: left;
+  vertical-align: top;
+}
+.wiki-markdown-content th {
+  background: #faf4e7;
+  font-weight: 700;
+}
+.wiki-markdown-content a {
+  overflow-wrap: anywhere;
+}
+#wiki-preview-source {
+  max-height: 20rem;
+  margin: 0.5rem 0;
+}
 .work-quality {
   margin-top: 0.7rem;
 }

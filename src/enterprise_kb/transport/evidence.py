@@ -93,6 +93,7 @@ CREDENTIAL_OPERATIONS = OPERATIONS | INTERNAL_OPERATIONS | {
     policy.WIKI_REVIEW_ACCESS[0], policy.WIKI_PUBLISH_ACCESS[0],
 } | rule_rollback.OPERATIONS | governance.OPERATIONS | release.OPERATIONS | glossary.OPERATIONS | departments.OPERATIONS | source_catalog.OPERATIONS | {
     admin.READ_DIRECTORY, admin.READ_DASHBOARD, admin.MANAGE_TASKS, admin.MANAGE_DIRECTORY,
+    admin.READ_SPACES, admin.MANAGE_SPACES, admin.READ_NOTIFICATIONS, admin.MANAGE_WIKI,
     space_archive.LIST, space_archive.VERIFY,
 }
 MAX_REQUEST_TIME = timedelta(seconds=8)

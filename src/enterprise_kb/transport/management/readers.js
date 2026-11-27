@@ -125,8 +125,10 @@ function addRule(existing = null) {
   const row = ui.row.content.firstElementChild.cloneNode(true);
   if (existing) {
     for (const name of ["subject_id", "effect", "passage_id", "valid_from", "valid_until"]) {
-      row.querySelector(`[name=${name}]`).value = existing[name] ?? "";
+      if (name !== "subject_id") row.querySelector(`[name=${name}]`).value = existing[name] ?? "";
     }
+    row.querySelector('[name=subject_id]').value = existing.subject_name ?? existing.subject_id ?? "";
+    row.querySelector('[name=subject_id]').dataset.principalRef = existing.subject_id ?? "";
     if (modelEgress) row.querySelector("[name=purpose]").value = existing.purpose;
     else row.querySelector("[name=whole_source]").checked = !existing.passage_id;
     for (const field of row.querySelectorAll("[name=fields]")) field.checked = existing.fields.includes(field.value);
@@ -136,8 +138,68 @@ function addRule(existing = null) {
     refreshRows();
     ui.add.focus();
   });
+  if (!modelEgress) attachSubjectPicker(row);
   ui.rows.append(row);
   return row;
+}
+
+function attachSubjectPicker(row) {
+  const input = row.querySelector('[name="subject_id"]');
+  const options = row.querySelector(".subject-picker-options");
+  let controller = null;
+  let timer = null;
+  const clear = () => {
+    controller?.abort();
+    clearTimeout(timer);
+    options.replaceChildren();
+    options.hidden = true;
+  };
+  const search = async () => {
+    const source = session?.snapshot?.source;
+    const query = input.value.trim();
+    if (!source || !query || uuid.test(query)) return;
+    controller?.abort();
+    controller = new AbortController();
+    try {
+      const response = await fetch(`/internal/sources/${source}/reader-subjects?q=${encodeURIComponent(query)}&limit=20`, {
+        headers: { Authorization: `Bearer ${session.token}` }, signal: controller.signal,
+        cache: "no-store", credentials: "omit", mode: "same-origin", redirect: "error", referrerPolicy: "no-referrer",
+      });
+      if (!response.ok) throw new Error("Subject options unavailable.");
+      const data = await response.json();
+      if (!Array.isArray(data.subjects)) throw new TypeError("Invalid subject options.");
+      const buttons = data.subjects.map(subject => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "quiet-button";
+        button.setAttribute("role", "option");
+        button.disabled = subject.selectable === false;
+        const state = subject.selectable ? "" : ` · ${subject.status === "departed" ? "已离职" : "已停用"}`;
+        button.textContent = `${subject.name}${subject.department ? ` · ${subject.department}` : ""}${state}`;
+        button.addEventListener("click", () => {
+          input.value = subject.name;
+          input.dataset.principalRef = subject.id;
+          clear();
+          input.focus();
+        });
+        return button;
+      });
+      options.replaceChildren(...buttons);
+      options.hidden = buttons.length === 0;
+    } catch (error) {
+      if (error.name !== "AbortError") options.hidden = true;
+    }
+  };
+  input.addEventListener("input", () => {
+    delete input.dataset.principalRef;
+    clear();
+    clearTimeout(timer);
+    timer = setTimeout(search, 180);
+    requireConfirmation();
+  });
+  input.addEventListener("keydown", event => {
+    if (event.key === "Escape") clear();
+  });
 }
 
 function renderSnapshot(source, body) {
@@ -165,7 +227,8 @@ function renderSnapshot(source, body) {
 function collectRules() {
   return Array.from(ui.rows.children, (row, index) => {
     const get = name => row.querySelector(`[name=${name}]`).value.trim();
-    const subject = get("subject_id"), passage = get("passage_id");
+    const subjectInput = row.querySelector('[name="subject_id"]');
+    const subject = subjectInput.dataset.principalRef || get("subject_id"), passage = get("passage_id");
     const start = get("valid_from"), end = get("valid_until");
     const fields = Array.from(row.querySelectorAll("[name=fields]:checked"), item => item.value);
     if (modelEgress) {

@@ -58,6 +58,34 @@ def test_source_picker_lists_only_sources_the_caller_can_manage(transport, usage
         assert other_result.json()["sources"] == [{"id": str(restricted), "name": "choose-colleague", "status": "active"}]
 
 
+def test_reader_subject_picker_limits_visibility_and_paginates(transport):
+    client, db, (owner, employee), credentials, *_ = transport
+    connection, tenant, _, source_ref, _ = db
+    outside = register_tenant(connection, "Unrelated directory")
+    connection.execute("""
+        INSERT INTO thalion.principal_directory_profile
+            (org_id, principal_id, display_name, employee_number, email, title, directory_state)
+        VALUES (%s, %s, '林晓', 'employee-12', 'lin@example.invalid', '主管', 'active'),
+               (%s, %s, '林雨', 'employee-13', 'rain@example.invalid', '专员', 'departed'),
+               (%s, %s, '林外', 'private-18', 'other@example.invalid', '专员', 'active')
+        """, (tenant.org_id, tenant.actor_id, tenant.org_id, tenant.other_actor_id, outside.org_id, outside.actor_id))
+    path = f"/internal/sources/{source_ref}/reader-subjects"
+    admit(credentials, owner, "read_local_policy")
+    admit(credentials, employee, "read_local_policy", "read_admin_directory")
+    assert client.get(path, headers=bearer(owner)).status_code == 403
+    assert client.get(path, headers=bearer(employee)).status_code == 403
+    admit(credentials, owner, "read_admin_directory")
+    first = client.get(path, params={"q": "林", "limit": 1}, headers=bearer(owner)).json()
+    second = client.get(path, params={"q": "林", "after": first["next_cursor"], "limit": 1}, headers=bearer(owner)).json()
+    subjects = {item["name"]: item for item in first["subjects"] + second["subjects"]}
+    assert subjects.keys() == {"林晓", "林雨"}
+    assert subjects["林晓"]["id"] == str(credentials[owner].employee_ref)
+    assert subjects["林雨"]["selectable"] is False
+    by_email = client.get(path, params={"q": "lin@"}, headers=bearer(owner)).json()
+    assert [subject["name"] for subject in by_email["subjects"]] == ["林晓"]
+    assert client.get(path, params={"q": "%"}, headers=bearer(owner)).json()["subjects"] == []
+
+
 @pytest.mark.parametrize(("path", "usage", "operation", "search_selector", "selected_selector"), [
     ("/manage/readers", "readers", "read_local_policy", "#readers-source", "#readers-source-id"),
     ("/manage/sources", "sync", "read_source_sync_status", "#sources-id", "#sources-id-value"),

@@ -125,8 +125,40 @@
             <input type="text" id="wiki-topic-key" autocomplete="off" spellcheck="false" placeholder="例如 travel-hotel" required>
             <label for="wiki-draft-title"><span class="sr-only">草稿标题</span><span aria-hidden="true">总结大标题（员工搜到时一眼看到的标题）</span></label>
             <input type="text" id="wiki-draft-title" autocomplete="off" maxlength="256" required>
-            <label for="wiki-draft-markdown"><span class="sr-only">Markdown 正文</span><span aria-hidden="true">大白话总结内容（也可以点下方按钮让 AI 帮你先写）</span></label>
-            <textarea id="wiki-draft-markdown" rows="4" required></textarea>
+            <div class="wiki-structured-toolbar" aria-label="正文编辑方式">
+              <button type="button" class="quiet-button" id="wiki-editor-mode" aria-expanded="false" aria-controls="wiki-structured-editor">结构化编辑</button>
+            </div>
+            <div id="wiki-draft-source">
+              <label for="wiki-draft-markdown"><span class="sr-only">Markdown 正文</span><span aria-hidden="true">大白话总结内容（也可以点下方按钮让 AI 帮你先写）</span></label>
+              <textarea id="wiki-draft-markdown" rows="4" required></textarea>
+            </div>
+            <section class="wiki-structured-editor" id="wiki-structured-editor" hidden aria-labelledby="wiki-editor-title">
+              <div class="wiki-editor-heading">
+                <h3 id="wiki-editor-title">正文结构</h3>
+              </div>
+              <div class="wiki-block-toolbar">
+                <label for="wiki-block-type"><span class="sr-only">内容块类型</span><span aria-hidden="true">添加内容块</span></label>
+                <select id="wiki-block-type">
+                  <option value="heading">标题</option>
+                  <option value="list">列表</option>
+                  <option value="table">表格</option>
+                  <option value="quote">引用</option>
+                  <option value="code">代码</option>
+                  <option value="link">链接</option>
+                </select>
+                <button type="button" class="quiet-button" id="wiki-add-block">添加内容块</button>
+              </div>
+              <ol class="wiki-draft-blocks" id="wiki-draft-blocks" aria-label="正文内容块"></ol>
+              <div class="wiki-block-editor" id="wiki-block-editor" hidden>
+                <div id="wiki-block-editor-fields"></div>
+                <div class="work-buttons">
+                  <button type="button" class="primary-button" id="wiki-apply-block">应用到正文</button>
+                  <button type="button" class="quiet-button" id="wiki-cancel-block">取消</button>
+                </div>
+                <p class="status-message" id="wiki-block-editor-status" role="status"></p>
+              </div>
+              <p class="status-message" id="wiki-editor-status" role="status"></p>
+            </section>
             <label for="wiki-reviewer-ref"><span class="sr-only">独立审核人标识</span><span aria-hidden="true">请哪位同事帮我把关核对（填对方员工编号，不能填自己）</span></label>
             <input type="text" id="wiki-reviewer-ref" autocomplete="off" spellcheck="false" required>
             <label for="wiki-citations"><span class="sr-only">正文引用依据</span><span aria-hidden="true">正文对应哪几段正式原文（每行一条：段落编号:版本号）</span></label>
@@ -138,7 +170,7 @@
             <label for="wiki-ai-budget"><span class="sr-only">AI 单次预算上限（microunits，100000 = 0.1 USD）</span><span aria-hidden="true">本次 AI 生成费用上限（默认 100000 约合 0.1 美元）</span></label>
             <input type="number" id="wiki-ai-budget" min="1" max="50000000" value="100000">
             <div class="work-buttons">
-              <button type="submit" class="primary-button"><span class="sr-only">提交候选草稿</span><span aria-hidden="true">提交给同事核对</span></button>
+              <button type="submit" id="wiki-submit-candidate" class="primary-button"><span class="sr-only">提交候选草稿</span><span aria-hidden="true">提交给同事核对</span></button>
               <button type="button" class="quiet-button" id="wiki-ai-generate-btn"><span class="sr-only">AI 辅助生成待审草稿</span><span aria-hidden="true">让 AI 先写一版大白话草稿</span></button>
             </div>
           </form>
@@ -158,7 +190,9 @@
               </div>
               <h3 id="wiki-preview-title"></h3>
               <p id="wiki-preview-meta" class="repair-meta"></p>
-              <pre id="wiki-preview-markdown"></pre>
+              <div class="wiki-markdown-preview wiki-markdown-content" id="wiki-preview-markdown" aria-label="安全排版预览"></div>
+              <button type="button" class="quiet-button" id="wiki-preview-source-toggle" aria-expanded="false" aria-controls="wiki-preview-source" hidden>查看 Markdown 源码</button>
+              <pre id="wiki-preview-source" hidden></pre>
               <h4><span class="sr-only">全部实际输入依据</span><span aria-hidden="true">这份总结引用了哪几处正式制度原文</span></h4>
               <ul class="result-list" id="wiki-preview-inputs"></ul>
             </div>

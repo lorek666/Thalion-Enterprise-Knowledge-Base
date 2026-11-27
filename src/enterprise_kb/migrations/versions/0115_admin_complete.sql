@@ -14,6 +14,12 @@ CREATE TABLE thalion.directory_sync_item (
     FOREIGN KEY (principal_id) REFERENCES thalion.principal (principal_id)
 );
 
+ALTER TABLE thalion.directory_sync_run
+    ADD COLUMN IF NOT EXISTS idempotency_key text;
+CREATE UNIQUE INDEX IF NOT EXISTS directory_sync_run_idempotency
+    ON thalion.directory_sync_run (org_id, idempotency_key)
+    WHERE idempotency_key IS NOT NULL;
+
 CREATE INDEX directory_sync_item_status
     ON thalion.directory_sync_item (sync_ref, status, row_number);
 
@@ -194,7 +200,8 @@ CREATE TABLE thalion.notification_endpoint (
 ALTER TABLE thalion.notification_delivery
     ADD COLUMN IF NOT EXISTS template_key text NOT NULL DEFAULT 'admin.default',
     ADD COLUMN IF NOT EXISTS message_digest bytea,
-    ADD COLUMN IF NOT EXISTS locked_at timestamptz;
+    ADD COLUMN IF NOT EXISTS locked_at timestamptz,
+    ADD COLUMN IF NOT EXISTS read_at timestamptz;
 
 CREATE TABLE thalion.notification_delivery_attempt (
     attempt_ref uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -287,3 +294,6 @@ CREATE TABLE thalion.wiki_review_assignment (
 
 CREATE INDEX wiki_review_assignment_queue
     ON thalion.wiki_review_assignment (org_id, space_id, status, due_at, assignment_ref);
+
+CREATE UNIQUE INDEX IF NOT EXISTS space_name_per_org
+    ON thalion.space (org_id, lower(btrim(name)));

@@ -1,12 +1,277 @@
+const wikiHeading = /^ {0,3}(#{1,6})[ \t]+(.+?)\s*$/;
+const wikiListItem = /^( {0,3})([-+*]|\d{1,9}[.)])[ \t]+(.+)$/;
+const wikiQuote = /^ {0,3}>[ \t]?/;
+const wikiFence = /^ {0,3}(`{3,}(?!`)(?=[^`]*$)|~{3,})(.*)$/;
+const wikiInlineLink = String.raw`\[([^\[\]\\]*(?:\\.[^\[\]\\]*)*)\]\((?:<([^<>\s]+)>|([^()<>\s]+))\)`;
+
+function parseTableRow(line) {
+  const value = line.trim().replace(/^\|/, "");
+  const cells = [];
+  let cell = "";
+  let escaped = false;
+  for (const character of value) {
+    if (character === "|" && !escaped) {
+      cells.push(cell.trim());
+      cell = "";
+      continue;
+    }
+    if (character === "\\" && !escaped) {
+      escaped = true;
+      cell += character;
+      continue;
+    }
+    escaped = false;
+    cell += character;
+  }
+  if (cell || !value.endsWith("|") || escaped) cells.push(cell.trim());
+  return cells.map(cellValue => cellValue.replace(/\\\|/g, "|"));
+}
+
+function tableDivider(lines, index) {
+  if (!lines[index]?.includes("|") || !lines[index + 1]?.includes("|")) return null;
+  const divider = parseTableRow(lines[index + 1]);
+  return divider.length === parseTableRow(lines[index]).length && divider.every(cell => /^:?-{3,}:?$/.test(cell))
+    ? divider : null;
+}
+
+function parseMarkdown(markdown) {
+  const lines = markdown.split("\n");
+  const offsets = [0];
+  for (const line of lines) offsets.push(offsets.at(-1) + line.length + 1);
+  const blocks = [];
+  let index = 0;
+  function add(block, start) {
+    blocks.push({ ...block, from: offsets[start], to: offsets[index] - 1 });
+  }
+  while (index < lines.length) {
+    if (!lines[index].trim()) {
+      index += 1;
+      continue;
+    }
+    const start = index;
+    const fence = lines[index].match(wikiFence);
+    if (fence) {
+      const close = new RegExp(`^ {0,3}${fence[1][0]}{${fence[1].length},}\\s*$`);
+      const language = fence[2].trim();
+      index += 1;
+      while (index < lines.length && !close.test(lines[index])) index += 1;
+      const value = lines.slice(start + 1, index).join("\n");
+      if (index < lines.length) index += 1;
+      add({ type: "code", language, value }, start);
+      continue;
+    }
+    const heading = lines[index].match(wikiHeading);
+    if (heading) {
+      index += 1;
+      add({ type: "heading", level: heading[1].length, text: heading[2].replace(/\s+#+$/, "") }, start);
+      continue;
+    }
+    const divider = tableDivider(lines, index);
+    if (divider) {
+      const headers = parseTableRow(lines[index]);
+      const rows = [];
+      index += 2;
+      while (lines[index]?.includes("|") && !lines[index].match(wikiHeading) && !lines[index].match(wikiFence)) {
+        rows.push(parseTableRow(lines[index]));
+        index += 1;
+      }
+      add({ type: "table", headers, divider, rows }, start);
+      continue;
+    }
+    const list = lines[index].match(wikiListItem);
+    if (list) {
+      const marker = list[2].at(-1);
+      const ordered = /^\d/.test(list[2]);
+      const items = [];
+      let simple = true;
+      while (lines[index]?.trim()) {
+        const item = lines[index].match(wikiListItem);
+        if (item && item[1] === list[1] && item[2].at(-1) === marker) items.push(item[3]);
+        else if (/^[ \t]/.test(lines[index])) simple = false;
+        else break;
+        index += 1;
+      }
+      add(simple ? { type: "list", ordered, start: ordered ? parseInt(list[2], 10) : 1, items }
+        : { type: "source", text: lines.slice(start, index).join("\n") }, start);
+      continue;
+    }
+    if (wikiQuote.test(lines[index])) {
+      const linesInQuote = [];
+      while (wikiQuote.test(lines[index] ?? "")) {
+        linesInQuote.push(lines[index].replace(wikiQuote, ""));
+        index += 1;
+      }
+      add({ type: "quote", text: linesInQuote.join("\n") }, start);
+      continue;
+    }
+    index += 1;
+    while (lines[index]?.trim()) {
+      if ([wikiHeading, wikiListItem, wikiQuote, wikiFence].some(pattern => pattern.test(lines[index])) || tableDivider(lines, index)) break;
+      index += 1;
+    }
+    const paragraph = lines.slice(start, index).join("\n");
+    const link = paragraph.match(new RegExp(`^${wikiInlineLink}$`));
+    if (link && safeLinkUrl(link[2] ?? link[3])) {
+      add({ type: "link", text: unescapeMarkdown(link[1]), url: link[2] ?? link[3] }, start);
+    } else {
+      add({ type: "paragraph", text: paragraph }, start);
+    }
+  }
+  return blocks;
+}
+
+function escapeTableCell(value) {
+  return String(value ?? "").replace(/\|/g, "\\|").replace(/\n/g, " ");
+}
+
+function codeFenceFor(value, language) {
+  const marker = language.includes("`") ? "~" : "`";
+  let length = 3;
+  for (const run of value.match(new RegExp(`${marker}+`, "g")) ?? []) length = Math.max(length, run.length + 1);
+  return marker.repeat(length);
+}
+
+function serializeBlock(block) {
+  if (block.type === "heading") return `${"#".repeat(block.level)} ${block.text}`;
+  if (block.type === "list") {
+    return block.items.map((item, index) => block.ordered ? `${block.start + index}. ${item}` : `- ${item}`).join("\n");
+  }
+  if (block.type === "table") {
+    const divider = block.headers.map((_, index) => block.divider?.[index] ?? "---");
+    const rows = block.rows.map(row => block.headers.map((_, index) => row[index] ?? ""));
+    return [block.headers.map(escapeTableCell), divider, ...rows.map(row => row.map(escapeTableCell))]
+      .map(row => `| ${row.join(" | ")} |`).join("\n");
+  }
+  if (block.type === "quote") return block.text.split("\n").map(line => `> ${line}`).join("\n");
+  if (block.type === "code") {
+    const fence = codeFenceFor(block.value, block.language);
+    return `${fence}${block.language}\n${block.value}\n${fence}`;
+  }
+  if (block.type === "link") return `[${block.text.replace(/[\\[\]]/g, "\\$&")}](<${block.url}>)`;
+  return block.text;
+}
+
+function safeLinkUrl(url) {
+  if (!url || /[\s\\<>\u0000-\u001f\u007f]/.test(url)) return null;
+  if (/^\/(?!\/)|^#/.test(url)) return url;
+  if (!/^https?:\/\//i.test(url)) return null;
+  try {
+    const parsed = new URL(url);
+    return parsed.username || parsed.password ? null : url;
+  } catch {
+    return null;
+  }
+}
+
+function unescapeMarkdown(text) {
+  return text.replace(/\\([!-/:-@\[-`{-~])/g, "$1");
+}
+
+function wikiLink(label, url) {
+  const link = element("a", label);
+  link.setAttribute("href", url);
+  if (!url.startsWith("#")) {
+    link.target = "_blank";
+    link.rel = "noopener noreferrer";
+  }
+  return link;
+}
+
+function appendInlineSafe(root, value) {
+  const pattern = new RegExp(String.raw`(\\[!-/:-@\[-\x60{-~])|(!?)${wikiInlineLink}|\*\*([^*\n]+)\*\*|\x60([^\x60\n]+)\x60|\*([^*\n]+)\*`, "g");
+  let offset = 0;
+  for (const match of value.matchAll(pattern)) {
+    if (match.index > offset) root.append(value.slice(offset, match.index));
+    const [, escaped, image, label, bracketUrl, bareUrl, strong, code, emphasis] = match;
+    if (escaped) root.append(escaped.slice(1));
+    else if (label !== undefined) {
+      const url = safeLinkUrl(bracketUrl ?? bareUrl);
+      root.append(!image && url ? wikiLink(unescapeMarkdown(label), url) : match[0]);
+    } else if (strong) root.append(element("strong", strong));
+    else if (code) root.append(element("code", code));
+    else root.append(element("em", emphasis));
+    offset = match.index + match[0].length;
+  }
+  root.append(value.slice(offset));
+}
+
+function renderBlockSafe(block, root) {
+  if (block.type === "heading") {
+    const heading = document.createElement(`h${Math.min(6, Math.max(1, block.level || 1))}`);
+    appendInlineSafe(heading, block.text);
+    root.append(heading);
+  } else if (block.type === "list") {
+    const list = document.createElement(block.ordered ? "ol" : "ul");
+    if (block.ordered && block.start !== 1) list.start = block.start;
+    for (const item of block.items) {
+      const li = document.createElement("li");
+      appendInlineSafe(li, item);
+      list.append(li);
+    }
+    root.append(list);
+  } else if (block.type === "table") {
+    const scroll = element("div", undefined, "wiki-table-scroll");
+    const table = document.createElement("table");
+    const head = document.createElement("thead");
+    const headRow = document.createElement("tr");
+    for (const cell of block.headers) {
+      const th = document.createElement("th");
+      th.scope = "col";
+      appendInlineSafe(th, cell);
+      headRow.append(th);
+    }
+    head.append(headRow);
+    const body = document.createElement("tbody");
+    for (const row of block.rows) {
+      const tr = document.createElement("tr");
+      for (const [index] of block.headers.entries()) {
+        const td = document.createElement("td");
+        appendInlineSafe(td, row[index] ?? "");
+        tr.append(td);
+      }
+      body.append(tr);
+    }
+    table.append(head, body);
+    scroll.append(table);
+    root.append(scroll);
+  } else if (block.type === "quote") {
+    const quote = document.createElement("blockquote");
+    appendInlineSafe(quote, block.text);
+    root.append(quote);
+  } else if (block.type === "code") {
+    const pre = document.createElement("pre");
+    const code = document.createElement("code");
+    code.textContent = block.value;
+    pre.append(code);
+    root.append(pre);
+  } else if (block.type === "link") {
+    root.append(wikiLink(block.text, block.url));
+  } else if (block.type === "source") {
+    root.append(element("pre", block.text));
+  } else {
+    const paragraph = document.createElement("p");
+    appendInlineSafe(paragraph, block.text ?? "");
+    root.append(paragraph);
+  }
+}
+
+function renderMarkdownSafe(markdown, root) {
+  const fragment = document.createDocumentFragment();
+  for (const block of parseMarkdown(markdown.replace(/\r\n?/g, "\n"))) renderBlockSafe(block, fragment);
+  root.replaceChildren(fragment);
+}
+
 const ui = Object.fromEntries([
   "lock", "access-form", "token", "lock-message", "workspace", "register-title", "status", "topics",
   "refresh", "logout", "next",
   "ledger-section", "rebuilds-section", "rebuilds-status", "rebuilds",
   "author-section", "inputs-form", "business-date", "direct-inputs", "parent-manifests", "rebuild-event",
   "clear-rebuild", "inputs-status", "candidate-form", "manifest-id", "topic-key", "draft-title",
-  "draft-markdown", "reviewer-ref", "citations", "statements", "ai-instructions", "ai-budget", "ai-generate-btn", "candidate-status",
+  "draft-markdown", "draft-source", "editor-mode", "structured-editor", "block-type", "add-block", "draft-blocks",
+  "block-editor", "block-editor-fields", "apply-block", "cancel-block", "block-editor-status", "editor-status",
+  "reviewer-ref", "citations", "statements", "ai-instructions", "ai-budget", "ai-generate-btn", "submit-candidate", "candidate-status",
   "queue-section", "queue-status", "revisions", "preview-panel", "preview-title", "preview-meta",
-  "preview-markdown", "preview-inputs", "citation-empty", "citation-detail", "citation-text", "comparison-box", "comparison-meta",
+  "preview-markdown", "preview-source-toggle", "preview-source", "preview-inputs", "citation-empty", "citation-detail", "citation-text", "comparison-box", "comparison-meta",
   "review-form", "review-reason", "approve-btn", "reject-btn", "publish-btn", "review-status", "publish-diagnosis",
   "release-section", "release-summary", "release-switch-form", "release-action", "release-wiki-enabled",
   "release-lexical-mode", "release-target", "release-trigger", "release-reason", "release-switch-status",
@@ -27,6 +292,8 @@ const unavailable = "暂时无法读取台账，请稍后重试。";
 let session = null;
 let activePreview = null;
 let releaseOverview = null;
+let editingBlock = null;
+let previewLoad = null;
 
 function element(tag, text, className) {
   const node = document.createElement(tag);
@@ -71,12 +338,221 @@ function parsePairs(raw) {
   });
 }
 
+function editorField(labelText, type, value) {
+  const label = element("label", labelText);
+  const field = document.createElement(type === "textarea" ? "textarea" : "input");
+  field.value = value;
+  if (type !== "textarea") field.type = type;
+  if (type === "textarea") field.rows = 3;
+  label.append(field);
+  return { label, field };
+}
+
+function renderDraftBlocks() {
+  const blocks = parseMarkdown(ui["draft-markdown"].value);
+  const fragment = document.createDocumentFragment();
+  for (const block of blocks) {
+    const item = element("li", undefined, "wiki-draft-block");
+    const body = element("div", undefined, "wiki-draft-block-body wiki-markdown-content");
+    renderBlockSafe(block, body);
+    const actions = element("div", undefined, "wiki-block-actions");
+    const edit = dualButton("编辑此块", "编辑", "quiet-button");
+    edit.addEventListener("click", () => openBlockEditor(block));
+    const remove = dualButton("删除此块", "删除", "quiet-button");
+    remove.addEventListener("click", () => {
+      replaceDraftBlock(block, "");
+      ui["add-block"].focus();
+    });
+    actions.append(edit, remove);
+    item.append(body, actions);
+    fragment.append(item);
+  }
+  ui["draft-blocks"].replaceChildren(fragment);
+  ui["editor-status"].textContent = blocks.length ? `${blocks.length} 个内容块。` : "暂无正文，请选择类型添加内容块。";
+}
+
+function makeBlock(type) {
+  if (type === "heading") return { type, level: 2, text: "" };
+  if (type === "list") return { type, ordered: false, start: 1, items: [""] };
+  if (type === "table") return { type, headers: ["", ""], rows: [["", ""]] };
+  if (type === "quote") return { type, text: "" };
+  if (type === "code") return { type, language: "", value: "" };
+  return { type: "link", text: "", url: "" };
+}
+
+function openBlockEditor(existing = null) {
+  if (editingBlock) return;
+  const block = existing ?? makeBlock(ui["block-type"].value);
+  const fields = ui["block-editor-fields"];
+  fields.replaceChildren();
+  function addField(labelText, type, value, container = fields) {
+    const control = editorField(labelText, type, value);
+    container.append(control.label);
+    return control.field;
+  }
+  let read;
+  if (block.type === "heading") {
+    const text = addField("标题文字", "text", block.text);
+    const level = addField("标题级别", "number", block.level);
+    level.min = "1";
+    level.max = "6";
+    read = () => ({ type: block.type, text: text.value.trim(), level: level.valueAsNumber });
+  } else if (block.type === "list") {
+    const items = addField("列表项（每行一项）", "textarea", block.items.join("\n"));
+    const label = element("label", "列表样式");
+    const select = document.createElement("select");
+    select.add(new Option("无序列表", "false"));
+    select.add(new Option("有序列表", "true"));
+    select.value = String(block.ordered);
+    label.append(select);
+    fields.append(label);
+    const start = addField("有序列表起始编号", "number", block.start);
+    start.min = "0";
+    start.max = "999999999";
+    const updateNumber = () => { start.parentElement.hidden = select.value === "false"; };
+    select.addEventListener("change", updateNumber);
+    updateNumber();
+    read = () => ({ type: block.type, ordered: select.value === "true", start: start.valueAsNumber,
+      items: items.value.split("\n").map(item => item.trim()).filter(Boolean) });
+  } else if (block.type === "table") {
+    read = editWikiTable(block, fields, addField);
+  } else if (block.type === "quote") {
+    const text = addField("引用文字", "textarea", block.text);
+    read = () => ({ type: block.type, text: text.value.trim() });
+  } else if (block.type === "code") {
+    const language = addField("代码语言（选填）", "text", block.language);
+    const value = addField("代码内容", "textarea", block.value);
+    read = () => ({ type: block.type, language: language.value.trim(), value: value.value });
+  } else if (block.type === "link") {
+    const text = addField("链接文字", "text", block.text);
+    const url = addField("链接地址", "text", block.url);
+    read = () => ({ type: block.type, text: text.value.trim(), url: url.value.trim() });
+  } else {
+    const text = addField("此块 Markdown 源码", "textarea", block.text);
+    read = () => ({ type: block.type, text: text.value });
+  }
+  editingBlock = { existing, read, focusReturn: document.activeElement };
+  setBlockEditing(true);
+  fields.querySelector("input, textarea, select")?.focus();
+}
+
+function editWikiTable(block, fields, addField) {
+  const grid = element("div", undefined, "wiki-table-fields");
+  fields.append(grid);
+  const headers = [];
+  const rows = [];
+  const addColumn = (value = "") => {
+    headers.push(addField(`第 ${headers.length + 1} 列表头`, "text", value, grid.firstElementChild));
+    for (const [index, row] of rows.entries()) {
+      row.push(addField(`第 ${index + 1} 行第 ${headers.length} 列`, "text", "", grid.children[index + 1]));
+    }
+    return headers.at(-1);
+  };
+  const addRow = (values = []) => {
+    const row = element("div", undefined, "wiki-table-field-row");
+    grid.append(row);
+    const cells = headers.map((_, index) => addField(`第 ${rows.length + 1} 行第 ${index + 1} 列`, "text", values[index] ?? "", row));
+    rows.push(cells);
+    return cells[0];
+  };
+  grid.append(element("div", undefined, "wiki-table-field-row"));
+  for (const header of block.headers) addColumn(header);
+  for (const row of block.rows) addRow(row);
+  const buttons = element("div", undefined, "work-buttons");
+  const rowButton = dualButton("添加表格行", "添加行", "quiet-button");
+  const columnButton = dualButton("添加表格列", "添加列", "quiet-button");
+  rowButton.addEventListener("click", () => addRow().focus());
+  columnButton.addEventListener("click", () => addColumn().focus());
+  buttons.append(rowButton, columnButton);
+  fields.append(buttons);
+  const valuesOf = controls => controls.map(control => control.value.trim());
+  return () => ({ ...block, headers: valuesOf(headers), rows: rows.map(valuesOf) });
+}
+
+function setBlockEditing(editing) {
+  ui["block-editor"].hidden = !editing;
+  ui["draft-blocks"].inert = editing;
+  for (const name of ["editor-mode", "add-block", "block-type", "submit-candidate", "ai-generate-btn"]) {
+    ui[name].disabled = editing;
+  }
+  ui["block-editor-status"].textContent = "";
+}
+
+function closeBlockEditor() {
+  editingBlock = null;
+  setBlockEditing(false);
+  ui["block-editor-fields"].replaceChildren();
+}
+
+function setEditorMode(label, expanded) {
+  ui["editor-mode"].textContent = label;
+  ui["editor-mode"].setAttribute("aria-expanded", String(expanded));
+}
+
+function replaceDraftBlock(block, replacement) {
+  const current = ui["draft-markdown"].value;
+  ui["draft-markdown"].value = current.slice(0, block.from) + replacement + current.slice(block.to);
+  renderDraftBlocks();
+}
+
+function appendDraftBlock(markdown) {
+  const current = ui["draft-markdown"].value;
+  const separator = !current || current.endsWith("\n\n") ? "" : current.endsWith("\n") ? "\n" : "\n\n";
+  ui["draft-markdown"].value = current + separator + markdown;
+  renderDraftBlocks();
+}
+
+function applyBlockEditor() {
+  if (!editingBlock) return;
+  const { existing, read } = editingBlock;
+  const block = read();
+  const invalidNumber = [...ui["block-editor-fields"].querySelectorAll('input[type="number"]')]
+    .some(field => !field.parentElement.hidden && (!field.validity.valid || !Number.isInteger(field.valueAsNumber)));
+  if (invalidNumber || block.text !== undefined && !block.text.trim() || block.type === "list" && !block.items.length
+      || block.type === "table" && !block.headers.some(Boolean)) {
+    ui["block-editor-status"].textContent = "请补全内容块并检查编号范围。";
+    return;
+  }
+  if (block.type === "link" && !safeLinkUrl(block.url)) {
+    ui["block-editor-status"].textContent = "请输入 HTTP(S) 地址、以单个 / 开头的站内路径或 # 锚点。";
+    return;
+  }
+  const markdown = serializeBlock(block);
+  closeBlockEditor();
+  if (existing) replaceDraftBlock(existing, markdown);
+  else appendDraftBlock(markdown);
+  ui["add-block"].focus();
+}
+
+function enterStructuredEditor() {
+  ui["draft-source"].hidden = true;
+  ui["draft-markdown"].required = false;
+  ui["structured-editor"].hidden = false;
+  setEditorMode("Markdown 源码", true);
+  renderDraftBlocks();
+}
+
+function showMarkdownSource() {
+  ui["draft-source"].hidden = false;
+  ui["draft-markdown"].required = true;
+  ui["structured-editor"].hidden = true;
+  ui["draft-blocks"].replaceChildren();
+  setEditorMode("结构化编辑", false);
+}
+
 function clearPreview() {
+  previewLoad?.abort();
+  previewLoad = null;
   activePreview = null;
   ui["preview-panel"].hidden = true;
   ui["preview-title"].textContent = "";
   ui["preview-meta"].textContent = "";
-  ui["preview-markdown"].textContent = "";
+  ui["preview-markdown"].replaceChildren();
+  ui["preview-source"].textContent = "";
+  ui["preview-source"].hidden = true;
+  ui["preview-source-toggle"].hidden = true;
+  ui["preview-source-toggle"].textContent = "查看 Markdown 源码";
+  ui["preview-source-toggle"].setAttribute("aria-expanded", "false");
   ui["preview-inputs"].replaceChildren();
   if (ui["citation-empty"]) ui["citation-empty"].hidden = false;
   ui["citation-detail"].hidden = true;
@@ -106,6 +582,9 @@ function lock(message = "", focus = false) {
   ui["author-section"].hidden = true;
   ui["inputs-form"].reset();
   ui["candidate-form"].reset();
+  closeBlockEditor();
+  showMarkdownSource();
+  ui["editor-status"].textContent = "";
   ui["inputs-status"].textContent = "";
   ui["candidate-status"].textContent = "";
   ui["queue-section"].hidden = true;
@@ -217,33 +696,41 @@ function revisionRow(item) {
 }
 
 async function inspectCitation(passageId) {
+  const current = previewLoad;
   if (ui["citation-empty"]) ui["citation-empty"].hidden = true;
   ui["citation-detail"].hidden = false;
   ui["citation-text"].textContent = "正在按你的当前权限实时调取正式原文…";
   try {
-    const response = await apiRequest(`/v1/passages/${encodeURIComponent(passageId)}`);
+    const response = await apiRequest(`/v1/passages/${encodeURIComponent(passageId)}`, { signal: current?.signal });
+    if (previewLoad !== current) return;
     if (!response.ok) {
       ui["citation-text"].textContent = `无法读取依据（HTTP ${response.status}）。`;
       return;
     }
     const data = await response.json();
+    if (previewLoad !== current) return;
     const p = data.passage ?? data;
     ui["citation-text"].textContent = `${p.title ?? ""}\n${p.excerpt ?? JSON.stringify(data)}`;
   } catch {
+    if (previewLoad !== current) return;
     ui["citation-text"].textContent = "原文核对失败，请重试。";
   }
 }
 
 async function loadPreview(item) {
   clearPreview();
+  const controller = new AbortController();
+  previewLoad = controller;
   ui["preview-panel"].hidden = false;
   ui["review-status"].textContent = "正在通过实时授权载入修订预览…";
   try {
     const response = await apiRequest(`/internal/wiki/revisions/${encodeURIComponent(item.revision_id)}/preview`, {
       method: "POST",
       body: { business_date: item.business_date },
+      signal: controller.signal,
     });
     const payload = await response.json().catch(() => ({}));
+    if (previewLoad !== controller) return;
     if (!response.ok) {
       ui["review-status"].textContent = payload.error?.message ?? `预览被拒绝（HTTP ${response.status}）。`;
       return;
@@ -258,7 +745,9 @@ async function loadPreview(item) {
     };
     ui["preview-title"].textContent = payload.content.title;
     ui["preview-meta"].textContent = `修订 ${item.revision_id} · 预期前代次 ${payload.expected_generation ?? 0} · 有效至 ${payload.valid_until}`;
-    ui["preview-markdown"].textContent = payload.content.markdown;
+    renderMarkdownSafe(payload.content.markdown, ui["preview-markdown"]);
+    ui["preview-source"].textContent = payload.content.markdown;
+    ui["preview-source-toggle"].hidden = false;
     ui["preview-inputs"].replaceChildren(...payload.manifest_inputs.map(entry => {
       const li = element("li", undefined, "wiki-input-item");
       const label = entry.cited ? "正文已引用" : "背景参考（受权限联动）";
@@ -278,6 +767,7 @@ async function loadPreview(item) {
     ui["publish-btn"].hidden = !activePreview.review_id;
     ui["review-status"].textContent = "预览已载入，请逐条核对全部输入依据后决定批准或驳回。";
   } catch {
+    if (previewLoad !== controller) return;
     ui["review-status"].textContent = "预览加载失败，请重试。";
   }
 }
@@ -515,6 +1005,24 @@ ui["clear-rebuild"].addEventListener("click", () => {
   ui["inputs-status"].textContent = "";
 });
 
+ui["editor-mode"].addEventListener("click", () => {
+  if (ui["structured-editor"].hidden) enterStructuredEditor();
+  else showMarkdownSource();
+});
+ui["add-block"].addEventListener("click", () => openBlockEditor());
+ui["apply-block"].addEventListener("click", applyBlockEditor);
+ui["cancel-block"].addEventListener("click", () => {
+  const focus = editingBlock?.focusReturn;
+  closeBlockEditor();
+  focus?.focus();
+});
+ui["preview-source-toggle"].addEventListener("click", () => {
+  const hidden = ui["preview-source"].hidden;
+  ui["preview-source"].hidden = !hidden;
+  ui["preview-source-toggle"].setAttribute("aria-expanded", String(hidden));
+  ui["preview-source-toggle"].textContent = hidden ? "隐藏 Markdown 源码" : "查看 Markdown 源码";
+});
+
 ui["inputs-form"].addEventListener("submit", async event => {
   event.preventDefault();
   ui["inputs-status"].textContent = "正在按实时权限封存输入清单…";
@@ -540,6 +1048,14 @@ ui["inputs-form"].addEventListener("submit", async event => {
 
 ui["candidate-form"].addEventListener("submit", async event => {
   event.preventDefault();
+  if (editingBlock) {
+    ui["block-editor-status"].textContent = "请先应用或取消当前内容块。";
+    return;
+  }
+  if (!ui["draft-markdown"].value.trim()) {
+    ui["candidate-status"].textContent = "请填写正文后再提交。";
+    return;
+  }
   ui["candidate-status"].textContent = "正在提交候选草稿…";
   try {
     const citations = parsePairs(ui["citations"].value);
@@ -575,6 +1091,7 @@ ui["candidate-form"].addEventListener("submit", async event => {
 });
 
 ui["ai-generate-btn"].addEventListener("click", async () => {
+  const owner = session;
   const manifestId = ui["manifest-id"].value.trim();
   const topicKey = ui["topic-key"].value.trim();
   const reviewerRef = ui["reviewer-ref"].value.trim();
@@ -601,18 +1118,24 @@ ui["ai-generate-btn"].addEventListener("click", async () => {
       },
     });
     const payload = await response.json().catch(() => ({}));
+    if (session !== owner) return;
     if (!response.ok) {
       ui["candidate-status"].textContent = payload.error?.message ?? `AI 生成草稿失败（HTTP ${response.status}）。`;
       return;
     }
     if (payload.title) ui["draft-title"].value = payload.title;
-    if (payload.markdown) ui["draft-markdown"].value = payload.markdown;
+    if (payload.markdown) {
+      closeBlockEditor();
+      ui["draft-markdown"].value = payload.markdown;
+      if (!ui["structured-editor"].hidden) renderDraftBlocks();
+    }
     if (Array.isArray(payload.citations)) {
       ui["citations"].value = payload.citations.map(([ref, rev]) => `${ref}:${rev}`).join("\n");
     }
     ui["candidate-status"].textContent = `AI 已生成待审修订 ${payload.revision_id}（调用回执 ${payload.provider_call_id}），等待独立审核人审核后发布。`;
     await load(session?.after ?? null);
   } catch {
+    if (session !== owner) return;
     ui["candidate-status"].textContent = "AI 草稿生成请求失败，请检查模型网关与授权配置。";
   }
 });

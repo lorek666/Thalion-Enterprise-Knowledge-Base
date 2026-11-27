@@ -57,19 +57,20 @@
   <div class="main-shell">
     <header class="site-bar">
       <div class="site-bar-inner">
-        <div class="top-tabs">
-          <span class="top-tab active">员工报错反馈</span>
-          <span class="top-subnote">跟进员工提的内容有误或搜不到规定问题</span>
-        </div>
-        <div class="session-controls">
+        <nav class="top-tabs" aria-label="反馈办理视图">
+          <a class="top-tab active" id="feedback-tab" href="/manage/feedback" aria-current="page">员工报错反馈</a>
+          <a class="top-tab" id="gap-tab" href="/manage/feedback?view=gaps">搜索缺口队列</a>
+          <span class="top-subnote" id="page-subnote">跟进员工提的内容有误或搜不到规定问题</span>
+        </nav>
+        <div class="session-controls" id="feedback-notice">
           <span class="seal-pill"><span class="gold-dot" aria-hidden="true"></span>处理完成后员工会在个人提醒里收到结果</span>
         </div>
       </div>
     </header>
     <main class="page-width wiki-management">
       <header class="ledger-heading">
-        <h1>处理员工提的报错与缺漏反馈</h1>
-        <p>查看员工提交的“内容有误”或“没搜到规定”反馈单，对照原文核实后填写答复说明，或补齐新制度后请员工复查。</p>
+        <h1 id="management-title">处理员工提的报错与缺漏反馈</h1>
+        <p id="management-description">查看员工提交的“内容有误”或“没搜到规定”反馈单，对照原文核实后填写答复说明，或补齐新制度后请员工复查。</p>
       </header>
     <section class="ledger-panel" id="work-lock" aria-labelledby="work-access-title">
       <div class="panel-heading"><h2 id="work-access-title"><span class="sr-only">载入办理凭据</span><span aria-hidden="true">输入处理人口令</span></h2><span class="local-label"><span></span>验证口令后进入</span></div>
@@ -77,7 +78,7 @@
         <label for="work-token"><span class="sr-only">办理测试凭据</span><span aria-hidden="true">处理人口令</span></label>
         <div class="access-field">
           <input type="password" id="work-token" autocomplete="off" spellcheck="false" maxlength="16384" required>
-          <button type="submit" class="primary-button"><span class="sr-only">查看待办</span><span aria-hidden="true">查看员工报错</span></button>
+          <button type="submit" id="work-login-button" class="primary-button" aria-label="查看待办">查看员工报错</button>
         </div>
         <p id="work-lock-message" class="status-message" role="status"></p>
       </form>
@@ -139,6 +140,40 @@
             </div>
           </form>
         </div>
+      </section>
+    </div>
+    <div id="gap-workspace" hidden>
+      <section class="ledger-panel" aria-labelledby="gap-board-title">
+        <div class="panel-heading">
+          <h2 id="gap-board-title" tabindex="-1">待核对缺口</h2>
+          <div class="action-group">
+            <button type="button" id="gap-refresh" class="quiet-button">刷新缺口队列</button>
+            <button type="button" id="gap-logout" class="quiet-button" aria-label="退出办理">退出后台</button>
+          </div>
+        </div>
+        <p class="panel-status" id="gap-list-status" role="status"></p>
+        <ul id="gap-items" class="result-list" aria-busy="false"></ul>
+        <div class="ledger-pagination action-group">
+          <button type="button" id="gap-previous" class="quiet-button" hidden>上一页缺口</button>
+          <button type="button" id="gap-next" class="quiet-button" hidden>下一页缺口</button>
+        </div>
+      </section>
+      <p id="gap-action-status" class="work-message" role="status"></p>
+      <section id="gap-detail" class="ledger-panel work-detail" hidden aria-labelledby="gap-detail-title">
+        <div class="panel-heading"><h2 id="gap-detail-title" tabindex="-1">办理搜索缺口</h2></div>
+        <p id="gap-selection" class="panel-status"></p>
+        <form id="gap-review" class="work-controls" autocomplete="off">
+          <label for="gap-classification">缺口归类</label>
+          <div class="access-field">
+            <select id="gap-classification" required>
+              <option value="">请选择归类</option>
+              <option value="conditions_missing">制度适用条件缺失</option>
+              <option value="permission_review">需要复核读者权限</option>
+            </select>
+            <button type="submit" id="gap-save" class="primary-button">保存缺口归类</button>
+          </div>
+          <p class="input-hint">保存后，此条缺口移出待核对队列，不会修改制度、读者权限或员工反馈单。</p>
+        </form>
       </section>
     </div>
     <footer>提示：为保护隐私，列表里不会直接露出敏感正文；把反馈单转给同事也不会自动放大对方的文件查看权限。</footer>

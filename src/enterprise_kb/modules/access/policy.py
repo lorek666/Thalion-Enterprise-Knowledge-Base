@@ -122,14 +122,27 @@ def _scoped_policy(connection: Connection, context: SourceWrite, space_id: int, 
         JOIN thalion.principal AS actor ON (actor.org_id, actor.principal_id) = (source.org_id, %s)
         WHERE identity.org_id = %s AND identity.space_id = %s AND identity.public_id = %s
           AND space.lifecycle = 'active' AND source.lifecycle = 'active'
-          AND {sql_admitted_admission('contract.admission')} AND {role}
+          AND {sql_admitted_admission('contract.admission')}
+          AND (
+              {role}
+              OR (
+              EXISTS (
+                  SELECT 1 FROM thalion.admin_role_assignment AS admin_role
+                  WHERE admin_role.org_id = source.org_id AND admin_role.principal_id = %s
+                    AND admin_role.active AND admin_role.role_key IN ('organization_admin', 'knowledge_operator', 'space_admin')
+                    AND admin_role.space_id IS NOT DISTINCT FROM source.space_id
+              )
+              AND space.lifecycle = 'active' AND source.lifecycle = 'active'
+              AND {sql_admitted_admission('contract.admission')}
+              )
+          )
           AND actor.principal_type = 'employee'
           AND {sql_issuer_matches_admission('actor.authority_issuer', 'contract.admission')}
           AND NOT actor.disabled
         FOR SHARE OF space, actor
         FOR {lock} OF source
         """,
-        (context.principal_id, context.org_id, space_id, source_ref),
+        (context.principal_id, context.org_id, space_id, source_ref, context.principal_id),
     ).fetchone()
     if selected is None:
         raise PolicyNotAdmitted("The current policy role matching source admission is required.")

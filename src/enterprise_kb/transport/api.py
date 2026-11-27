@@ -73,6 +73,14 @@ SPACE_ARCHIVES_PATH = "/internal/lifecycle/space-archives"
 SOURCE_INGEST_PATH = "/internal/sources"
 SOURCE_OPTIONS_PATH = f"{SOURCE_INGEST_PATH}/options"
 ADMIN_DIRECTORY_PATH = "/internal/admin/directory"
+ADMIN_BASE_PATH = "/internal/admin"
+ADMIN_OPTIONS_PATH = f"{ADMIN_BASE_PATH}/options"
+ADMIN_TASKS_PATH = f"{ADMIN_BASE_PATH}/tasks"
+ADMIN_NOTIFICATIONS_PATH = f"{ADMIN_BASE_PATH}/notifications"
+ADMIN_SYNC_PATH = f"{ADMIN_BASE_PATH}/directory/sync"
+ADMIN_DASHBOARD_PATH = f"{ADMIN_BASE_PATH}/dashboard"
+ADMIN_SPACES_PATH = f"{ADMIN_BASE_PATH}/spaces"
+ADMIN_ROLES_PATH = f"{ADMIN_BASE_PATH}/roles"
 RETENTION_PATH = "/internal/lifecycle/retention-policy"
 HOLD_PATH = "/internal/lifecycle/holds"
 SEARCH_SCHEMA = {
@@ -120,6 +128,13 @@ def _http_reply(reply: EvidenceReply) -> Response:
     if reply.status_code == 401:
         headers["WWW-Authenticate"] = "Bearer"
     return Response(reply.body, status_code=reply.status_code, media_type="application/json", headers=headers)
+
+
+def _admin_reply(result: admin.AdminReadResult) -> Response:
+    headers = dict(NO_STORE)
+    if result.status == 401:
+        headers["WWW-Authenticate"] = "Bearer"
+    return Response(encode(result.payload), status_code=result.status, media_type="application/json", headers=headers)
 
 
 def _mcp_result(reply: EvidenceReply) -> types.CallToolResult:
@@ -219,7 +234,8 @@ class _Ingress:
                                 f"{SPACE_ARCHIVES_PATH}/",
                                 f"{BACKUP_COPIES_PATH}/", f"{REPAIR_PATH}/", f"{PDF_CORRECTION_PATH}/",
                                 f"{SOURCE_INGEST_PATH}/", f"{EMPLOYEE_ORIGINALS_PATH}/", f"{WIKI_BASE_PATH}/",
-                                f"{EVIDENCE_RULES_PATH}/", f"{GOVERNANCE_PATH}/", f"{RELEASE_PATH}/", f"{GLOSSARY_PATH}/"))
+                                f"{EVIDENCE_RULES_PATH}/", f"{GOVERNANCE_PATH}/", f"{RELEASE_PATH}/", f"{GLOSSARY_PATH}/",
+                                f"{ADMIN_BASE_PATH}/", f"{ADMIN_BASE_PATH}"))
         ):
             headers = request.headers.getlist("authorization")
             match = TOKEN.fullmatch(headers[0]) if len(headers) == 1 else None
@@ -637,6 +653,201 @@ def create_app(
         result = await run_in_threadpool(
             admin.read_directory_options, service.connect, request.state.employee,
             query=request.query_params.get("q", ""), limit=limit,
+        )
+        return _admin_reply(result)
+
+    @app.get(f"{ADMIN_OPTIONS_PATH}/{{kind}}")
+    async def read_admin_options(request: Request, kind: str):
+        allowed = {"q", "limit", "after"}
+        if set(request.query_params) - allowed:
+            return _http_reply(error_reply("invalid_arguments"))
+        try:
+            limit = int(request.query_params.get("limit", "50"))
+        except ValueError:
+            return _http_reply(error_reply("invalid_arguments"))
+        result = await run_in_threadpool(
+            admin.read_admin_options, service.connect, request.state.employee,
+            kind=kind, query=request.query_params.get("q", ""), limit=limit,
+            after=request.query_params.get("after"),
+        )
+        return _admin_reply(result)
+
+    @app.post(f"{ADMIN_SYNC_PATH}/preview")
+    async def preview_directory_sync(request: Request):
+        keys = request.headers.getlist("idempotency-key")
+        if len(keys) != 1:
+            return _http_reply(error_reply("invalid_arguments"))
+        try:
+            body = await _json_arguments(request, max_body=5 * 1024 * 1024)
+            if not isinstance(body, dict) or set(body) - {"source", "rows", "csv"}:
+                raise ValueError
+            if ("rows" in body) == ("csv" in body):
+                raise ValueError
+            rows = admin.parse_directory_csv(body["csv"]) if "csv" in body else admin._directory_rows(body["rows"])
+            source = body.get("source", "csv")
+        except (ServiceRefusal, ValueError, TypeError):
+            return _http_reply(error_reply("invalid_arguments"))
+        result = await run_in_threadpool(
+            admin.preview_directory_sync, service.connect, request.state.employee,
+            rows=rows, source=source, idempotency_key=keys[0],
+        )
+        return _admin_reply(result)
+
+    @app.post(f"{ADMIN_SYNC_PATH}/{{sync_id}}/apply")
+    async def apply_directory_sync(request: Request, sync_id: str):
+        if request.query_params or len(request.headers.getlist("idempotency-key")) != 1:
+            return _http_reply(error_reply("invalid_arguments"))
+        if request.headers.get("content-length") not in (None, "0"):
+            return _http_reply(error_reply("invalid_arguments"))
+        result = await run_in_threadpool(
+            admin.apply_directory_sync, service.connect, request.state.employee, sync_id=sync_id,
+        )
+        return _admin_reply(result)
+
+    @app.post(f"{ADMIN_DIRECTORY_PATH}/principals/{{principal_ref}}/status")
+    async def set_admin_principal_status(request: Request, principal_ref: str):
+        try:
+            body = await _json_arguments(request)
+            if not isinstance(body, dict) or set(body) != {"enabled"} or type(body["enabled"]) is not bool:
+                raise ValueError
+        except (ServiceRefusal, ValueError):
+            return _http_reply(error_reply("invalid_arguments"))
+        result = await run_in_threadpool(
+            admin.set_principal_status, service.connect, request.state.employee,
+            principal_ref=principal_ref, enabled=body["enabled"],
+        )
+        return _admin_reply(result)
+
+    @app.get(ADMIN_SPACES_PATH)
+    async def read_admin_spaces(request: Request):
+        if set(request.query_params) - {"q", "limit"}:
+            return _http_reply(error_reply("invalid_arguments"))
+        try:
+            limit = int(request.query_params.get("limit", "50"))
+        except ValueError:
+            return _http_reply(error_reply("invalid_arguments"))
+        result = await run_in_threadpool(
+            admin.read_spaces, service.connect, request.state.employee,
+            query=request.query_params.get("q", ""), limit=limit,
+        )
+        return _admin_reply(result)
+
+    @app.post(ADMIN_SPACES_PATH)
+    async def create_admin_space(request: Request):
+        keys = request.headers.getlist("idempotency-key")
+        if len(keys) != 1:
+            return _http_reply(error_reply("invalid_arguments"))
+        try:
+            body = await _json_arguments(request)
+        except ServiceRefusal as error:
+            return _http_reply(error_reply(error.code))
+        result = await run_in_threadpool(
+            admin.create_space, service.connect, request.state.employee, values=body, idempotency_key=keys[0],
+        )
+        return _admin_reply(result)
+
+    @app.post(ADMIN_ROLES_PATH)
+    async def assign_admin_role(request: Request):
+        try:
+            body = await _json_arguments(request)
+        except ServiceRefusal as error:
+            return _http_reply(error_reply(error.code))
+        result = await run_in_threadpool(
+            admin.assign_role, service.connect, request.state.employee, values=body,
+        )
+        return _admin_reply(result)
+
+    @app.get(ADMIN_TASKS_PATH)
+    async def read_admin_tasks(request: Request):
+        allowed = {"status", "task_type", "limit"}
+        if set(request.query_params) - allowed:
+            return _http_reply(error_reply("invalid_arguments"))
+        try:
+            limit = int(request.query_params.get("limit", "50"))
+        except ValueError:
+            return _http_reply(error_reply("invalid_arguments"))
+        result = await run_in_threadpool(
+            admin.read_admin_tasks, service.connect, request.state.employee,
+            status=request.query_params.get("status"), task_type=request.query_params.get("task_type"), limit=limit,
+        )
+        return _admin_reply(result)
+
+    @app.post(ADMIN_TASKS_PATH)
+    async def create_admin_task(request: Request):
+        keys = request.headers.getlist("idempotency-key")
+        if len(keys) != 1:
+            return _http_reply(error_reply("invalid_arguments"))
+        try:
+            body = await _json_arguments(request)
+        except ServiceRefusal as error:
+            return _http_reply(error_reply(error.code))
+        result = await run_in_threadpool(
+            admin.create_admin_task, service.connect, request.state.employee, values=body, idempotency_key=keys[0],
+        )
+        return _admin_reply(result)
+
+    @app.post(f"{ADMIN_TASKS_PATH}/{{task_id}}/transition")
+    async def transition_admin_task(request: Request, task_id: str):
+        keys = request.headers.getlist("idempotency-key")
+        if len(keys) != 1:
+            return _http_reply(error_reply("invalid_arguments"))
+        try:
+            body = await _json_arguments(request)
+        except ServiceRefusal as error:
+            return _http_reply(error_reply(error.code))
+        result = await run_in_threadpool(
+            admin.transition_admin_task, service.connect, request.state.employee, task_id=task_id, values=body,
+        )
+        return _admin_reply(result)
+
+    @app.get(ADMIN_NOTIFICATIONS_PATH)
+    async def read_admin_notifications(request: Request):
+        allowed = {"unread_only", "limit"}
+        if set(request.query_params) - allowed:
+            return _http_reply(error_reply("invalid_arguments"))
+        raw_unread = request.query_params.get("unread_only", "false").lower()
+        if raw_unread not in {"true", "false"}:
+            return _http_reply(error_reply("invalid_arguments"))
+        try:
+            limit = int(request.query_params.get("limit", "50"))
+        except ValueError:
+            return _http_reply(error_reply("invalid_arguments"))
+        result = await run_in_threadpool(
+            admin.read_notifications, service.connect, request.state.employee,
+            unread_only=raw_unread == "true", limit=limit,
+        )
+        return _admin_reply(result)
+
+    @app.post(f"{ADMIN_NOTIFICATIONS_PATH}/read")
+    async def mark_admin_notifications_read(request: Request):
+        keys = request.headers.getlist("idempotency-key")
+        if len(keys) != 1:
+            return _http_reply(error_reply("invalid_arguments"))
+        try:
+            body = await _json_arguments(request)
+            ids = body["notification_ids"] if isinstance(body, dict) else body
+        except (ServiceRefusal, KeyError, TypeError):
+            return _http_reply(error_reply("invalid_arguments"))
+        result = await run_in_threadpool(
+            admin.mark_notifications_read, service.connect, request.state.employee,
+            notification_ids=ids,
+        )
+        return _admin_reply(result)
+
+    @app.get(f"{SOURCE_INGEST_PATH}/{{source_id}}/reader-subjects")
+    async def read_reader_subjects(request: Request, source_id: str):
+        allowed = {"q", "limit", "after"}
+        if set(request.query_params) - allowed:
+            return _http_reply(error_reply("invalid_arguments"))
+        try:
+            source_ref = parse_ref(source_id)
+            limit = int(request.query_params.get("limit", "50"))
+        except ValueError:
+            return _http_reply(error_reply("invalid_arguments"))
+        result = await run_in_threadpool(
+            admin.read_reader_subject_options, service.connect, request.state.employee,
+            source_ref=source_ref, query=request.query_params.get("q", ""), limit=limit,
+            after=request.query_params.get("after"),
         )
         return Response(encode(result.payload), status_code=result.status, media_type="application/json", headers=NO_STORE)
 
