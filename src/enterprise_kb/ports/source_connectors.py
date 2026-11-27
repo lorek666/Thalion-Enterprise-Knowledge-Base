@@ -392,12 +392,19 @@ class SharePointGraphConnector(_BaseHttpAdapter):
         url = f"{self._endpoint}/drives/{self._drive_id}/items/{item_id}/content"
         try:
             with httpx2.Client(
-                timeout=self._timeout_seconds, transport=self._transport, follow_redirects=True, trust_env=False,
+                timeout=self._timeout_seconds, transport=self._transport, follow_redirects=False, trust_env=False,
             ) as client:
                 response = client.get(url, headers=self._auth_headers())
-            final = urlsplit(str(response.url))
-            if final.netloc != "graph.microsoft.com" and not final.netloc.endswith(self._DOWNLOAD_HOST_SUFFIXES):
-                raise ValueError("SharePoint content redirect is outside an approved host.")
+                if response.status_code in {301, 302, 303, 307, 308}:
+                    location = response.headers.get("Location")
+                    parsed = urlsplit(location or "")
+                    if (
+                        parsed.scheme != "https"
+                        or not parsed.netloc.endswith(self._DOWNLOAD_HOST_SUFFIXES)
+                        or parsed.username or parsed.password or parsed.fragment
+                    ):
+                        raise ValueError("SharePoint content redirect is outside an approved host.")
+                    response = client.get(location, headers={"Accept": "application/octet-stream"})
             if response.status_code != 200:
                 raise ConnectorPortUnavailable(f"SharePoint content returned HTTP {response.status_code}.")
             payload = response.content

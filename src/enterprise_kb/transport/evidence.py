@@ -2963,9 +2963,8 @@ class EvidenceService:
                         )
                         for item in payload["sources"]:
                             connector = connector_for_source(self.source_connector, UUID(item["source_id"]))
-                            item["connector_kind"] = (
-                                None if connector is None else "confluence_cloud"
-                                if getattr(connector, "source_system", None) == "confluence_cloud" else "http"
+                            item["connector_kind"] = None if connector is None else getattr(
+                                connector, "source_system", "http"
                             )
                         payload["connector_configured"] = any(item["connector_kind"] for item in payload["sources"])
                     outcome = "succeeded"

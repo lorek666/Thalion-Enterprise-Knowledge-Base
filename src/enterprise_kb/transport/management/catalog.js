@@ -13,6 +13,12 @@ const lexicalLabels = {
   direct_scan: "原文全量直扫",
   hybrid_vector: "语义理解 + 关键词混合搜索",
 };
+const connectorLabels = {
+  confluence_cloud: "Confluence Cloud",
+  feishu_wiki: "飞书知识库",
+  sharepoint_graph: "SharePoint",
+  http: "企业 OA / 自建系统",
+};
 const utcTime = new Intl.DateTimeFormat("zh-CN", {
   timeZone: "UTC", year: "numeric", month: "2-digit", day: "2-digit",
   hour: "2-digit", minute: "2-digit", second: "2-digit", hourCycle: "h23",
@@ -200,8 +206,7 @@ function renderSources(payload) {
     const badgeRow = text("div", "");
     const statusPill = text("span", lifecycleLabels[src.lifecycle] || src.lifecycle, "wiki-state");
     if (src.lifecycle !== "active") statusPill.dataset.state = "needs_rebuild";
-    const connectorLabel = src.connector_kind === "confluence_cloud" ? "Confluence Cloud"
-      : src.connector_kind === "http" ? "外部系统" : "未接通";
+    const connectorLabel = connectorLabels[src.connector_kind] || (src.connector_kind ? "外部系统" : "未接通");
     badgeRow.append(
       statusPill,
       text("span", `${admissionLabels[src.admission] || src.admission} · 接入版本 v${src.contract_revision}`, "wiki-generation"),
@@ -221,7 +226,10 @@ function renderSources(payload) {
     );
     const actions = text("div", "", "work-buttons");
     const syncBtn = dualLabelNode("button", "触发连接器同步",
-      src.connector_kind === "confluence_cloud" ? "从 Confluence 同步" : "立即从 OA 同步最新文件", "primary-button");
+      src.connector_kind === "confluence_cloud" ? "从 Confluence 同步"
+        : src.connector_kind === "feishu_wiki" ? "从飞书同步"
+        : src.connector_kind === "sharepoint_graph" ? "从 SharePoint 同步"
+        : "立即从 OA 同步最新文件", "primary-button");
     syncBtn.type = "button";
     syncBtn.disabled = !src.connector_kind || src.lifecycle !== "active";
     syncBtn.dataset.sourceSync = src.source_id;

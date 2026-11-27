@@ -126,6 +126,26 @@ def test_sharepoint_rejects_delta_links_outside_graph():
         connector.fetch_delta_page(uuid4(), None)
 
 
+def test_sharepoint_does_not_follow_content_redirect_to_an_untrusted_host():
+    calls = []
+
+    def respond(request):
+        calls.append(request)
+        if request.url.path.endswith("/content"):
+            return httpx2.Response(302, headers={"Location": "https://evil.example/download"})
+        raise AssertionError(request.url)
+
+    connector = source_connectors.SharePointGraphConnector(
+        AuthenticatedEndpointConfig("https://graph.microsoft.com/v1.0", "vault:graph/token"),
+        drive_id="drive-1",
+        transport=httpx2.MockTransport(respond),
+        secret_resolver=lambda _: "graph-token",
+    )
+    with pytest.raises(ConnectorPortUnavailable):
+        connector._read_content("item-1")
+    assert len(calls) == 1
+
+
 def test_connector_map_accepts_native_feishu_and_sharepoint_types():
     feishu_ref, sharepoint_ref = uuid4(), uuid4()
     mapping = {
