@@ -29,8 +29,14 @@ jobs:
         run: |
           bash -n sql/run_all.sh
           bash -n scripts/linux_offline_smoke.sh
+          bash -n deploy/backup/thalion-backup.sh
+          bash -n scripts/production_backup_smoke.sh
       - name: Run eight isolated SQL prototypes
         run: ./sql/run_all.sh
+      - name: Exercise production backup and isolated recovery
+        run: |
+          docker build --file deploy/backup/Dockerfile.smoke --tag thalion-backup-smoke:ci deploy/backup
+          bash scripts/production_backup_smoke.sh thalion-backup-smoke:ci
       - name: Set up Python v6.2.0
         uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
         with:

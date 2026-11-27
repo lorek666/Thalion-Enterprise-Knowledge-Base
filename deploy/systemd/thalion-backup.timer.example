@@ -1,0 +1,11 @@
+[Unit]
+Description=Daily Thalion database and originals backup
+
+[Timer]
+OnCalendar=*-*-* 02:30:00
+Persistent=true
+RandomizedDelaySec=10m
+Unit=thalion-backup.service
+
+[Install]
+WantedBy=timers.target

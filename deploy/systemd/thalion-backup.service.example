@@ -1,0 +1,20 @@
+[Unit]
+Description=Thalion database and originals backup
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=postgres
+Group=postgres
+EnvironmentFile=/etc/thalion/backup.env
+StateDirectory=thalion-backup
+StateDirectoryMode=0700
+UMask=0077
+ExecStart=/bin/bash /opt/thalion/deploy/backup/thalion-backup.sh backup
+TimeoutStartSec=6h
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+ReadWritePaths=/var/log/pgbackrest /var/spool/pgbackrest

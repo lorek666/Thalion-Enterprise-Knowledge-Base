@@ -1,0 +1,4 @@
+wal_level = replica
+archive_mode = on
+archive_timeout = '60s'
+archive_command = 'pgbackrest --stanza=thalion archive-push %p'
