@@ -70,12 +70,31 @@ def _admit(connection, context, source, operation, *, store: SyntheticOriginalSt
     return (context.org_id, source.space_id, source_id, source.contract_revision), namespace
 
 
-def _head(connection, scope):
+def _connector_cursor_column(connection: Connection) -> bool:
     return connection.execute("""
-        SELECT sequence, through_cursor, connector_cursor FROM thalion.source_sync_page
-        WHERE (org_id, space_id, source_id, contract_revision) = (%s, %s, %s, %s)
-        ORDER BY sequence DESC LIMIT 1
-    """, scope).fetchone() or (0, None, None)
+        SELECT EXISTS (
+            SELECT 1 FROM information_schema.columns
+            WHERE table_schema = 'thalion' AND table_name = 'source_sync_page'
+              AND column_name = 'connector_cursor'
+        )
+    """).fetchone()[0]
+
+
+def _head(connection, scope):
+    if _connector_cursor_column(connection):
+        row = connection.execute("""
+            SELECT sequence, through_cursor, connector_cursor FROM thalion.source_sync_page
+            WHERE (org_id, space_id, source_id, contract_revision) = (%s, %s, %s, %s)
+            ORDER BY sequence DESC LIMIT 1
+        """, scope).fetchone()
+    else:
+        row = connection.execute("""
+            SELECT sequence, through_cursor FROM thalion.source_sync_page
+            WHERE (org_id, space_id, source_id, contract_revision) = (%s, %s, %s, %s)
+            ORDER BY sequence DESC LIMIT 1
+        """, scope).fetchone()
+        row = (*row, None) if row is not None else None
+    return row or (0, None, None)
 
 
 def _received(connection, scope, through, digest):
@@ -162,6 +181,9 @@ def commit_content_page(
     storage_kind = registry.store_storage_kind(store)
     with connection.transaction():
         scope, namespace = _admit(connection, context, source, COMMIT, store=store)
+        has_connector_cursor = _connector_cursor_column(connection)
+        if page.connector_cursor is not None and not has_connector_cursor:
+            raise ValueError("The database migration for connector cursors is not installed.")
         materials = tuple(
             registry._original_identity(*scope[:2], namespace, item.version) for item in page.items
         )
@@ -211,12 +233,20 @@ def commit_content_page(
             ).version_ref
             for item, asset in zip(page.items, assets, strict=True)
         )
-        transaction.execute("""
-            INSERT INTO thalion.source_sync_page (
-                org_id, space_id, source_id, contract_revision, sequence, through_cursor, previous_cursor,
-                request_id, input_digest, item_count, connector_cursor
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        """, (*scope, sequence + 1, page.through, page.previous, context.request_id, digest, len(version_refs), page.connector_cursor))
+        if _connector_cursor_column(transaction):
+            transaction.execute("""
+                INSERT INTO thalion.source_sync_page (
+                    org_id, space_id, source_id, contract_revision, sequence, through_cursor, previous_cursor,
+                    request_id, input_digest, item_count, connector_cursor
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """, (*scope, sequence + 1, page.through, page.previous, context.request_id, digest, len(version_refs), page.connector_cursor))
+        else:
+            transaction.execute("""
+                INSERT INTO thalion.source_sync_page (
+                    org_id, space_id, source_id, contract_revision, sequence, through_cursor, previous_cursor,
+                    request_id, input_digest, item_count
+                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            """, (*scope, sequence + 1, page.through, page.previous, context.request_id, digest, len(version_refs)))
         transaction.execute("""
             INSERT INTO thalion.source_sync_page_item (
                 org_id, space_id, source_id, contract_revision, sequence, position, document_id, version_id
