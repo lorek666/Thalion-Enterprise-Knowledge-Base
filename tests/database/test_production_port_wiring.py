@@ -2,6 +2,7 @@ from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from hashlib import sha256
 import json
+from urllib.parse import parse_qs, urlsplit
 from uuid import UUID, uuid4
 
 from cryptography.hazmat.primitives.asymmetric import rsa
@@ -90,7 +91,7 @@ def _sign_token(
     )
 
 
-def _register_production_tenant(connection, label: str, issuer: str) -> Tenant:
+def _register_production_tenant(connection, label: str, issuer: str, *, employee_subject: str | None = None) -> Tenant:
     with connection.transaction():
         org_id = connection.execute(
             "INSERT INTO thalion.organization (name, business_timezone) "
@@ -99,11 +100,12 @@ def _register_production_tenant(connection, label: str, issuer: str) -> Tenant:
         ).fetchone()[0]
         actors = []
         for role in ("employee", "employee", "service", "service"):
+            subject = employee_subject if not actors and employee_subject is not None else str(uuid4())
             actor_id = connection.execute(
                 "INSERT INTO thalion.principal "
                 "(org_id, principal_type, authority_issuer, authority_subject_key) "
                 "VALUES (%s, %s, %s, %s) RETURNING principal_id",
-                (org_id, role, issuer, str(uuid4())),
+                (org_id, role, issuer, subject),
             ).fetchone()[0]
             connection.execute(
                 "INSERT INTO thalion.object_identity (org_id, object_type, object_id) "
@@ -572,6 +574,97 @@ def test_production_port_registry_wiring_drives_http_mcp_and_fails_closed(runtim
         mismatch_resp = mismatch_client.post("/v1/search", headers=bearer(token), json=search_body)
         assert mismatch_resp.status_code == 503
         assert mismatch_resp.json()["error"]["code"] == "dependency_unavailable"
+
+
+def test_production_browser_sso_maps_standard_claims_to_registered_employee(runtime_db, tmp_path):
+    connection, _, database_url = runtime_db
+    issuer = "https://idp.corp.example"
+    subject = "opaque-oidc-employee-key"
+    employee = _register_production_tenant(connection, "SSO org", issuer, employee_subject=subject)
+    other = _register_production_tenant(connection, "Another org", issuer)
+    policy_file = tmp_path / "access.json"
+    policy_file.write_text(json.dumps({
+        "issuer": issuer, "client_id": "kb-web", "group_claim": "realm_access.roles",
+        "groups": {
+            "kb-readers": {"space_ref": str(employee.space_ref), "operations": ["search"]},
+            "unrelated-admins": {"space_ref": str(other.space_ref), "operations": ["read_passage"]},
+        },
+    }))
+    policy_file.chmod(0o600)
+    config = IdentityEndpointConfig(issuer, "api-audience", f"{issuer}/jwks")
+    signing_key, jwk = _rsa_jwk("standard-oidc")
+    issued_token = None
+
+    def idp(request):
+        if request.url.path == "/jwks":
+            return httpx2.Response(200, json={"keys": [jwk]})
+        assert request.url.path == "/token"
+        assert parse_qs(request.content.decode())["code_verifier"]
+        return httpx2.Response(200, json={"id_token": issued_token, "access_token": "ignored-provider-access-token"})
+
+    transport = httpx2.MockTransport(idp)
+    network_identity = OidcJwksIdentityVerifier(config, transport=transport)
+    connect = local.production_connection_factory(database_url)
+    deployment = type("Deployment", (), {"identity": config})()
+    sso, identity = local._build_production_oidc_sso(deployment, {
+        "THALION_OIDC_AUTHORIZATION_ENDPOINT": f"{issuer}/authorize", "THALION_OIDC_TOKEN_ENDPOINT": f"{issuer}/token",
+        "THALION_OIDC_CLIENT_ID": "web-idp-client", "THALION_OIDC_REDIRECT_URI": "https://kb.corp.example/auth/oidc/callback",
+        "THALION_OIDC_ACCESS_MAP_FILE": str(policy_file),
+    }, connect, network_identity)
+    sso._transport = transport
+    registry = PortRegistry(
+        mode="production", identity=identity,
+        source_authority=HttpSourceAuthorityAdapter(
+            AuthenticatedEndpointConfig("https://auth.corp.example", "env:AUTH_TOKEN"), authority_ref=uuid4(),
+        ),
+        object_storage=HttpObjectStorageAdapter(ObjectStorageEndpointConfig(
+            "https://objects.corp.example", "originals", "env:OBJECT_TOKEN",
+        )),
+        security_audit_log=HttpSecurityAuditLogAdapter(
+            AuthenticatedEndpointConfig("https://audit.corp.example/events", "env:AUDIT_TOKEN"), log_ref=uuid4(),
+        ),
+    )
+    service = evidence.EvidenceService.from_port_registry(connect, registry)
+    with TestClient(api.create_app(service, allowed_hosts=("kb.corp.example",), oidc_sso=sso),
+                    base_url="https://kb.corp.example") as client:
+        def login(groups, *, audience="web-idp-client", external_subject=subject, authorized_party=None):
+            nonlocal issued_token
+            start = client.get("/auth/oidc/login", follow_redirects=False)
+            parameters = parse_qs(urlsplit(start.headers["location"]).query)
+            now = int(datetime.now(UTC).timestamp())
+            claims = {
+                "iss": issuer, "aud": audience, "sub": external_subject, "iat": now, "exp": now + 900,
+                "nonce": parameters["nonce"][0], "realm_access": {"roles": groups},
+                "space_ref": str(other.space_ref), "operations": ["read_passage"],
+            }
+            if authorized_party is not None:
+                claims["azp"] = authorized_party
+            issued_token = jwt.encode(claims, signing_key, algorithm="RS256", headers={"kid": "standard-oidc"})
+            return client.get("/auth/oidc/callback", params={"code": "accepted", "state": parameters["state"][0]},
+                              follow_redirects=False)
+
+        assert login(["kb-readers"], audience="api-audience").status_code == 401
+        assert login(["kb-readers"], audience=["web-idp-client", "api-audience"], authorized_party="another-app").status_code == 401
+        assert login(["kb-readers"], external_subject="unregistered-user").status_code == 403
+        assert login(["unknown-group"]).status_code == 403
+        assert login(["unrelated-admins"]).status_code == 403
+        assert login("kb-readers").status_code == 403
+        callback = login(["kb-readers", "unrelated-admins"])
+        assert callback.status_code == 302
+        ticket = urlsplit(callback.headers["location"]).fragment.removeprefix("oidc_ticket=")
+        exchange = client.post("/auth/oidc/exchange", json={"ticket": ticket}).json()
+        browser_token = exchange["access_token"]
+        assert browser_token != issued_token
+        assert datetime.fromisoformat(exchange["expires_at"]) <= datetime.now(UTC) + timedelta(minutes=5)
+        caller = service.identify(browser_token)
+        assert (caller.org_id, caller.space_id) == (employee.org_id, employee.space_id)
+        assert caller.credential.operations == {"search"}
+        assert caller.credential.client_id == "kb-web"
+        assert client.get(f"/v1/passages/{uuid4()}", headers=bearer(browser_token)).status_code == 403
+        assert client.get(f"/v1/passages/{uuid4()}", headers=bearer(issued_token)).status_code == 401
+        connection.execute("UPDATE thalion.principal SET disabled = true WHERE principal_id = %s", (employee.actor_id,))
+        assert client.get(f"/v1/passages/{uuid4()}", headers=bearer(browser_token)).status_code == 401
+        assert login(["kb-readers"]).status_code == 403
 
 
 def test_thalion_serve_production_check_config_verifies_env_ports_and_head(

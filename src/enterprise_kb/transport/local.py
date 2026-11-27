@@ -1,5 +1,6 @@
 import argparse
 from contextlib import contextmanager
+from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 from hashlib import sha256
 import json
@@ -38,11 +39,12 @@ from enterprise_kb.ports.adapters import (
     model_gateway_options_from_env,
     resolve_secret_ref,
 )
-from enterprise_kb.ports.contracts import PortUnavailable, ProductionIsolationError
-from enterprise_kb.runtime.config import ConfigValidationError, load_production_config_from_env
+from enterprise_kb.ports.contracts import IdentityVerifierPort, PortUnavailable, ProductionIsolationError
+from enterprise_kb.runtime.config import ConfigValidationError, ProductionDeploymentConfig, load_production_config_from_env
 
 from .api import create_app
 from .evidence import EvidenceService, SyntheticCredential, parse_ref
+from .oidc_access import OidcBrowserAccess
 from .oidc_sso import OidcSsoConfig, OidcSsoManager
 
 
@@ -395,21 +397,31 @@ def _verify_shared_tables(connection) -> tuple[str, ...]:
     return revisions
 
 
-def _build_production_oidc_sso(config, env) -> OidcSsoManager | None:
+def _build_production_oidc_sso(
+    config: ProductionDeploymentConfig, env, connect, identity: IdentityVerifierPort,
+) -> tuple[OidcSsoManager | None, IdentityVerifierPort]:
     auth_ep = (env.get("THALION_OIDC_AUTHORIZATION_ENDPOINT") or "").strip()
     token_ep = (env.get("THALION_OIDC_TOKEN_ENDPOINT") or "").strip()
     client_id = (env.get("THALION_OIDC_CLIENT_ID") or "").strip()
     redirect_uri = (env.get("THALION_OIDC_REDIRECT_URI") or "").strip()
     secret_ref = (env.get("THALION_OIDC_CLIENT_SECRET_REF") or "").strip()
+    mapping_path = (env.get("THALION_OIDC_ACCESS_MAP_FILE") or "").strip()
+    auth_method = (env.get("THALION_OIDC_TOKEN_AUTH_METHOD") or "client_secret_post").strip()
     present = [auth_ep, token_ep, client_id, redirect_uri]
-    if not any(present) and not secret_ref:
-        return None
+    if not any(present) and not secret_ref and not mapping_path and not env.get("THALION_OIDC_TOKEN_AUTH_METHOD"):
+        return None, identity
     if not all(present):
         raise ConfigValidationError(
             "OIDC SSO requires THALION_OIDC_AUTHORIZATION_ENDPOINT, THALION_OIDC_TOKEN_ENDPOINT, "
             "THALION_OIDC_CLIENT_ID, and THALION_OIDC_REDIRECT_URI together."
         )
     client_secret = resolve_secret_ref(secret_ref) if secret_ref else None
+    browser_access = None
+    if mapping_path:
+        path = Path(mapping_path)
+        if not path.is_absolute():
+            raise ConfigValidationError("THALION_OIDC_ACCESS_MAP_FILE must be an absolute path.")
+        browser_access = OidcBrowserAccess(connect, identity, _private_json(path))
     raw_scopes = (env.get("THALION_OIDC_SCOPES") or "openid profile email").strip()
     scopes = tuple(part for part in raw_scopes.replace(",", " ").split() if part)
     sso_config = OidcSsoConfig(
@@ -421,10 +433,11 @@ def _build_production_oidc_sso(config, env) -> OidcSsoManager | None:
         redirect_uri=redirect_uri,
         client_secret=client_secret,
         scopes=scopes,
-        audience=config.identity.audience,
         allow_http_loopback=False,
+        token_auth_method=auth_method,
     )
-    return OidcSsoManager(sso_config)
+    mapper = browser_access.issue if browser_access is not None else None
+    return OidcSsoManager(sso_config, token_mapper=mapper), browser_access or identity
 
 
 def _run_production_mode(arguments) -> int:
@@ -442,9 +455,10 @@ def _run_production_mode(arguments) -> int:
             **model_options,
             **embedding_options,
         )
-        oidc_sso = _build_production_oidc_sso(config, os.environ)
         database_url = resolve_secret_ref(config.database_url_ref)
         connect = production_connection_factory(database_url)
+        oidc_sso, identity = _build_production_oidc_sso(config, os.environ, connect, registry.identity)
+        registry = replace(registry, identity=identity)
         with connect() as connection:
             revisions = _verify_shared_tables(connection)
     except (
@@ -500,6 +514,7 @@ def _run_production_mode(arguments) -> int:
                 else None
             ),
             "oidc_sso_configured": oidc_sso is not None,
+            "oidc_access_mapping_configured": isinstance(identity, OidcBrowserAccess),
             "port": arguments.port,
         }
         print(json.dumps(summary, ensure_ascii=False))

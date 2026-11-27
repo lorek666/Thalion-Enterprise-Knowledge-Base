@@ -9,7 +9,7 @@ import secrets
 from threading import Lock
 from time import monotonic
 from typing import Any
-from urllib.parse import urlencode, urlparse
+from urllib.parse import quote_plus, urlencode, urlparse
 
 import httpx2
 import jwt
@@ -44,6 +44,7 @@ class OidcSsoConfig:
     state_ttl_seconds: int = 300
     ticket_ttl_seconds: int = 60
     max_pending: int = 1024
+    token_auth_method: str = "client_secret_post"
 
     def __post_init__(self):
         for name in ("issuer", "authorization_endpoint", "token_endpoint", "jwks_url", "redirect_uri"):
@@ -57,6 +58,10 @@ class OidcSsoConfig:
             raise ValueError("OIDC state_ttl_seconds must be between 30 and 900.")
         if not 10 <= self.ticket_ttl_seconds <= 300:
             raise ValueError("OIDC ticket_ttl_seconds must be between 10 and 300.")
+        if self.token_auth_method not in {"client_secret_post", "client_secret_basic"}:
+            raise ValueError("OIDC token_auth_method must be client_secret_post or client_secret_basic.")
+        if self.token_auth_method == "client_secret_basic" and not self.client_secret:
+            raise ValueError("OIDC client_secret_basic requires a client secret.")
 
 
 def _validate_endpoint_url(url: str, name: str, *, allow_http_loopback: bool) -> str:
@@ -275,6 +280,14 @@ class OidcSsoManager:
             )
         except jwt.InvalidTokenError:
             raise OidcSsoError("oidc_invalid_token", "OIDC ID Token 验签失败。", 401) from None
+        authorized_party = claims.get("azp")
+        audience = claims["aud"]
+        if ("azp" in claims or (isinstance(audience, list) and len(audience) > 1)) and authorized_party != self.config.client_id:
+            raise OidcSsoError("oidc_invalid_token", "OIDC ID Token 不属于当前登录应用。", 401)
+        try:
+            datetime.fromtimestamp(float(claims["exp"]), UTC)
+        except (OverflowError, OSError, ValueError, TypeError):
+            raise OidcSsoError("oidc_invalid_token", "OIDC ID Token 有效期无效。", 401) from None
         token_nonce = claims.get("nonce")
         if not isinstance(token_nonce, str) or not hmac.compare_digest(token_nonce, expected_nonce):
             raise OidcSsoError("oidc_nonce_mismatch", "OIDC nonce 校验失败。", 401)
@@ -309,7 +322,11 @@ class OidcSsoManager:
             "client_id": self.config.client_id,
             "code_verifier": pending.code_verifier,
         }
-        if self.config.client_secret:
+        auth = None
+        if self.config.token_auth_method == "client_secret_basic":
+            auth = (quote_plus(self.config.client_id), quote_plus(self.config.client_secret))
+            del form["client_id"]
+        elif self.config.client_secret:
             form["client_secret"] = self.config.client_secret
 
         try:
@@ -322,6 +339,7 @@ class OidcSsoManager:
                     self.config.token_endpoint,
                     data=form,
                     headers={"Accept": "application/json"},
+                    auth=auth,
                 )
             if response.status_code != 200:
                 raise OidcSsoError("oidc_token_exchange_failed", "OIDC 授权码换取令牌失败。", 401)
@@ -361,6 +379,8 @@ class OidcSsoManager:
         )
         with self._lock:
             self._prune_locked(monotonic())
+            if len(self._pending_tickets) >= self.config.max_pending:
+                raise OidcSsoError("sso_busy", "登录请求过多，请稍后重试。", 503)
             self._pending_tickets[ticket] = ticket_entry
 
         redirect_url = f"{pending.return_to}#oidc_ticket={ticket}"
