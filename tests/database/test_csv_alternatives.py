@@ -173,7 +173,7 @@ def test_upgrade_keeps_linked_units_and_existing_wiki_manifest(database_url, tmp
         seal = assemble(db, first + inline)
         assert seal.status == "succeeded"
 
-        assert upgrade(database_url) == ["0112_flexible_vector_dimensions"]
+        assert upgrade(database_url) == ["0113_source_connector_cursor"]
         assert units(db, version) == before
         inherited = assemble(db, inherited=(seal.manifest_ref,))
         assert inherited.status == "succeeded" and inherited.payload == seal.payload

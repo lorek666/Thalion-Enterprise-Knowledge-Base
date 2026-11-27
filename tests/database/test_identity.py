@@ -109,7 +109,7 @@ def test_empty_database_upgrade_is_repeatable(database_url, migration_environmen
     with psycopg.connect(database_url) as connection:
         assert connection.execute(
             "SELECT version_num FROM thalion.alembic_version"
-        ).fetchall() == [("0112_flexible_vector_dimensions",)]
+        ).fetchall() == [("0113_source_connector_cursor",)]
         assert connection.execute(
             "SELECT extversion FROM pg_extension WHERE extname = 'vector'"
         ).fetchone() is not None
@@ -146,7 +146,7 @@ def test_upgrade_from_identity_revision_preserves_existing_references(
     with psycopg.connect(database_url) as connection:
         assert connection.execute(
             "SELECT version_num FROM thalion.alembic_version"
-        ).fetchall() == [("0112_flexible_vector_dimensions",)]
+        ).fetchall() == [("0113_source_connector_cursor",)]
         assert connection.execute(
             "SELECT object_type, object_id, public_id FROM thalion.object_identity "
             "WHERE org_id = %s ORDER BY object_type",

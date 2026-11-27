@@ -136,7 +136,7 @@ def test_model_policy_migration_leaves_existing_source_rules_and_approval_scope_
         legacy_rules = "SELECT to_jsonb(binding) - 'version_ref' FROM thalion.permission_binding AS binding"
         before = connection.execute(legacy_rules).fetchall()
         assert len(before) == 1
-        assert upgrade(database_url) == ["0112_flexible_vector_dimensions"]
+        assert upgrade(database_url) == ["0113_source_connector_cursor"]
         assert connection.execute(legacy_rules).fetchall() == before
         assert connection.execute("SELECT model_policy_approver_id FROM thalion.source_contract_revision").fetchone() == (None,)
         assert connection.execute("SELECT safety_epoch, local_policy_revision FROM thalion.source").fetchone() == (2, 2)

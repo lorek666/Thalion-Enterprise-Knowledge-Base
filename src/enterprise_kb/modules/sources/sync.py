@@ -14,6 +14,7 @@ from .originals import ObjectStorageOriginalStore, SyntheticOriginalStore
 
 COMMIT = "commit_source_change"
 READ = "read_source_sync_position"
+MAX_CONNECTOR_CURSOR_BYTES = 4096
 
 
 class CursorConflict(Exception):
@@ -38,6 +39,7 @@ class SourcePage:
     previous: UUID | None
     through: UUID
     items: tuple[PageOriginal, ...]
+    connector_cursor: str | None = field(default=None, repr=False)
 
 
 @dataclass(frozen=True)
@@ -70,10 +72,10 @@ def _admit(connection, context, source, operation, *, store: SyntheticOriginalSt
 
 def _head(connection, scope):
     return connection.execute("""
-        SELECT sequence, through_cursor FROM thalion.source_sync_page
+        SELECT sequence, through_cursor, connector_cursor FROM thalion.source_sync_page
         WHERE (org_id, space_id, source_id, contract_revision) = (%s, %s, %s, %s)
         ORDER BY sequence DESC LIMIT 1
-    """, scope).fetchone() or (0, None)
+    """, scope).fetchone() or (0, None, None)
 
 
 def _received(connection, scope, through, digest):
@@ -114,9 +116,24 @@ def _lock_existing_documents(connection, scope, items):
 
 
 def read_content_position(connection: Connection, context: registry.SourceWrite, source: SyncSource) -> UUID | None:
+    return read_content_checkpoint(connection, context, source)[0]
+
+
+def read_content_checkpoint(
+    connection: Connection, context: registry.SourceWrite, source: SyncSource,
+) -> tuple[UUID | None, str | None]:
     with connection.transaction():
         scope, _ = _admit(connection, context, source, READ)
-        return _head(connection, scope)[1]
+        _, position, cursor = _head(connection, scope)
+        return position, cursor
+
+
+def is_connector_cursor(value) -> bool:
+    return (
+        isinstance(value, str) and 0 < len(value) <= MAX_CONNECTOR_CURSOR_BYTES
+        and value.isprintable() and value == value.strip()
+        and len(value.encode("utf-8")) <= MAX_CONNECTOR_CURSOR_BYTES
+    )
 
 
 def commit_content_page(
@@ -129,6 +146,8 @@ def commit_content_page(
         raise ValueError("A synthetic content page requires opaque UUID positions.")
     if page.previous == page.through or not isinstance(page.items, tuple) or len(page.items) > MAX_BATCH_FILES:
         raise ValueError("The synthetic content page must be bounded and advance its position.")
+    if page.connector_cursor is not None and not is_connector_cursor(page.connector_cursor):
+        raise ValueError("The connector cursor is invalid or too large.")
     source_fields = (source.space_id, source.source_ref, source.contract_revision)
     total_bytes = 0
     for item in page.items:
@@ -152,7 +171,9 @@ def commit_content_page(
             [(material, item.version.display_name, item.version.version_label)
              for material, item in zip(materials, page.items, strict=True)],
         )
-        _, current = _head(connection, scope)
+        if page.connector_cursor is not None:
+            digest = registry._digest("source_connector_cursor.v1", digest.hex(), page.connector_cursor)
+        _, current, _ = _head(connection, scope)
         existing = _received(connection, scope, page.through, digest)
         if existing is None and current != page.previous:
             raise CursorConflict("The page does not follow the current source content position.")
@@ -180,7 +201,7 @@ def commit_content_page(
     def apply(transaction):
         if _received(transaction, scope, page.through, digest) is not None:
             return page.through
-        sequence, current = _head(transaction, scope)
+        sequence, current, _ = _head(transaction, scope)
         if current != page.previous:
             raise CursorConflict("The page does not follow the current source content position.")
         _lock_existing_documents(transaction, scope[:3], page.items)
@@ -193,9 +214,9 @@ def commit_content_page(
         transaction.execute("""
             INSERT INTO thalion.source_sync_page (
                 org_id, space_id, source_id, contract_revision, sequence, through_cursor, previous_cursor,
-                request_id, input_digest, item_count
-            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        """, (*scope, sequence + 1, page.through, page.previous, context.request_id, digest, len(version_refs)))
+                request_id, input_digest, item_count, connector_cursor
+            ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+        """, (*scope, sequence + 1, page.through, page.previous, context.request_id, digest, len(version_refs), page.connector_cursor))
         transaction.execute("""
             INSERT INTO thalion.source_sync_page_item (
                 org_id, space_id, source_id, contract_revision, sequence, position, document_id, version_id

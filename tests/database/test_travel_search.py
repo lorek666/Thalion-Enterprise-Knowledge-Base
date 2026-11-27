@@ -316,7 +316,7 @@ def test_migration_preserves_existing_single_passage_audit(database_url, tmp_pat
             """,
             (check_id, context.request_id, passage_ref, payload_digest, bytes(32)),
         )
-        assert upgrade(database_url) == ["0112_flexible_vector_dimensions"]
+        assert upgrade(database_url) == ["0113_source_connector_cursor"]
         assert connection.execute(
             """
             SELECT check_id, request_id, dependency_count, payload_digest, position,

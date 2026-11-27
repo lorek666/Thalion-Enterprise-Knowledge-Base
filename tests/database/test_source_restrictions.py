@@ -71,7 +71,7 @@ def test_upgrade_preserves_content_and_inventory_resume_positions(database_url, 
         request = sync_request(connection, tenant, operation=reconciliation.COMMIT)
         reconciliation.reconcile_inventory(connection, request, source, declared, ())
 
-        assert upgrade(database_url) == ["0112_flexible_vector_dimensions"]
+        assert upgrade(database_url) == ["0113_source_connector_cursor"]
         assert positions(connection, tenant, source) == (page.through, declared.snapshot_ref)
         next_page = sync.SourcePage(page.through, uuid4(), ())
         assert sync.commit_content_page(connection, sync_request(connection, tenant), source, next_page, store).sequence == 2

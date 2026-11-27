@@ -390,7 +390,7 @@ def test_forward_migration_preserves_old_usage_without_inventing_a_result(databa
             """,
             (tenant.org_id, call_id, receipt_id),
         )
-        assert upgrade(database_url) == ["0112_flexible_vector_dimensions"]
+        assert upgrade(database_url) == ["0113_source_connector_cursor"]
         usage = external_call_usage(connection, tenant.org_id, job_id)
         assert (usage.actual_microunits, usage.dispatched_calls) == (73, 1)
         assert connection.execute(

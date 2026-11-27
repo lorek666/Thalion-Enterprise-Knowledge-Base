@@ -1272,6 +1272,7 @@ def build_production_port_registry(
     source_authority_ref: UUID,
     security_log_ref: UUID,
     source_connector_system: str | None = None,
+    source_connector_map_ref: str | None = None,
     model_destination_id: str | None = None,
     model_allowed_purposes: frozenset[str] = frozenset(),
     model_gateway_protocol: str = "thalion",
@@ -1305,7 +1306,13 @@ def build_production_port_registry(
         secret_resolver=secret_resolver,
     )
     source_connector = None
-    if config.source_connector is not None:
+    if source_connector_map_ref:
+        from .source_connectors import load_source_connector_map
+
+        if config.source_connector is not None or source_connector_system:
+            raise ValueError("Use either a source connector map or the global HTTP connector, not both.")
+        source_connector = load_source_connector_map(source_connector_map_ref, secret_resolver=secret_resolver)
+    elif config.source_connector is not None:
         if not source_connector_system:
             raise ValueError("Configured source_connector requires explicit source_connector_system.")
         source_connector = HttpSourceConnectorAdapter(

@@ -328,7 +328,7 @@ def test_upgrade_keeps_legacy_checkpoints_but_requires_source_evidence_for_new_o
         values = bytes(32), tenant.org_id, tenant.space_id, uuid4(), uuid4(), uuid4(), uuid4(), uuid4()
         connection.execute(record, (previous, *values))
 
-        assert upgrade(database_url) == ["0112_flexible_vector_dimensions"]
+        assert upgrade(database_url) == ["0113_source_connector_cursor"]
         assert connection.execute("""
             SELECT version_ref, source_authority_ref, source_generation FROM thalion.archive_rebuild_rule_check
             """).fetchall() == [(previous, None, None)]

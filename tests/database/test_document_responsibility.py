@@ -124,7 +124,7 @@ def test_migration_preserves_existing_exact_document_and_version_identity(databa
         query = "SELECT public_id, object_id FROM thalion.object_identity WHERE public_id = ANY(%s) ORDER BY object_type"
         saved = connection.execute(query, (refs,)).fetchall()
         assert len(saved) == 2
-        assert upgrade(database_url) == ["0112_flexible_vector_dimensions"]
+        assert upgrade(database_url) == ["0113_source_connector_cursor"]
         assert connection.execute(query, (refs,)).fetchall() == saved
         assert connection.execute("SELECT count(*) FROM thalion.responsibility_assignment").fetchone() == (0,)
 

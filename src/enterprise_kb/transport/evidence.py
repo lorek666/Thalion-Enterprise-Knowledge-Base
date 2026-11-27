@@ -44,6 +44,7 @@ from enterprise_kb.ports.contracts import (
     SecurityLogUnavailable,
     SourceConnectorPort,
 )
+from enterprise_kb.ports.source_connectors import connector_for_source
 from enterprise_kb.runtime.audit_sink import (
     SecurityAuditDispatcher,
     SecurityAuditEvent,
@@ -2960,6 +2961,13 @@ class EvidenceService:
                         payload = source_catalog.read_catalog(
                             connection, call, connector_configured=(self.source_connector is not None),
                         )
+                        for item in payload["sources"]:
+                            connector = connector_for_source(self.source_connector, UUID(item["source_id"]))
+                            item["connector_kind"] = (
+                                None if connector is None else "confluence_cloud"
+                                if getattr(connector, "source_system", None) == "confluence_cloud" else "http"
+                            )
+                        payload["connector_configured"] = any(item["connector_kind"] for item in payload["sources"])
                     outcome = "succeeded"
                     reply = EvidenceReply(request_id, 200, encode({"request_id": str(request_id), **payload}), deadline)
                 except OperationsNotAdmitted:
@@ -2998,7 +3006,8 @@ class EvidenceService:
                 raise ValueError("Invalid connector sync parameters.")
         except ValueError:
             return error_reply("invalid_arguments", request_id)
-        if self.source_connector is None:
+        connector = connector_for_source(self.source_connector, source_ref)
+        if connector is None:
             return error_reply("connector_not_configured", request_id)
 
         business_day = now.astimezone(caller.business_timezone).date()
@@ -3022,7 +3031,7 @@ class EvidenceService:
                     report = connector_sync.sync_source_from_connector(
                         connection,
                         source_ref,
-                        self.source_connector,
+                        connector,
                         self.store,
                         reconcile=reconcile,
                         max_pages=max_pages,

@@ -137,7 +137,7 @@ def test_job_enqueue_timestamp_survives_upgrade_deduplication_and_retry(database
     with open_database(database_url) as connection:
         tenant = register_tenant(connection, "Pre-migration jobs")
         old = enqueue_job(connection, spec_for(tenant, "legacy"))
-        assert upgrade(database_url) == ["0112_flexible_vector_dimensions"]
+        assert upgrade(database_url) == ["0113_source_connector_cursor"]
         spec = spec_for(tenant)
         before, = connection.execute("SELECT clock_timestamp()").fetchone()
         job_id = enqueue_job(connection, spec)

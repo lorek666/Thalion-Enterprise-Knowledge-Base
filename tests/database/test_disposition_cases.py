@@ -350,7 +350,7 @@ def test_upgrade_preserves_legacy_rejection_as_the_only_decision(database_url, t
             """, (tenant.other_actor_id, open_call(REJECT, tenant.other_actor_id).request_id, uuid4(), case_ref),
         ).fetchone()
 
-        assert upgrade(database_url) == ["0112_flexible_vector_dimensions"]
+        assert upgrade(database_url) == ["0113_source_connector_cursor"]
         assert connection.execute("""
             SELECT inventory_material, inventory_snapshot FROM thalion.disposition_case WHERE case_ref = %s
             """, (case_ref,)).fetchone() == (material, snapshot)

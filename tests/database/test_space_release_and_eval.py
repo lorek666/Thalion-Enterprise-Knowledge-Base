@@ -118,7 +118,7 @@ def _create_second_space(connection, org_id: int, owner_id: int, other_id: int, 
 
 def test_space_release_migration_and_db_guards(database_url):
     migrate_to_revision(database_url, "0104_governance_sharing_deleg")
-    assert upgrade(database_url) == ["0112_flexible_vector_dimensions"]
+    assert upgrade(database_url) == ["0113_source_connector_cursor"]
 
     with open_database(database_url) as connection:
         tenant = register_tenant(connection, "Synthetic Release Guard Org")

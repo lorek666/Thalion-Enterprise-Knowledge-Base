@@ -182,7 +182,7 @@ def test_csv_upgrade_preserves_existing_markdown_receipts_and_configuration(data
             SELECT 3, parser_version, profile, locator_revision FROM thalion.processing_config_revision
             WHERE configuration_revision = 1
         """)
-        assert upgrade(database_url) == ["0112_flexible_vector_dimensions"]
+        assert upgrade(database_url) == ["0113_source_connector_cursor"]
         assert approved(db, version) == locators
         assert connection.execute("SELECT decision_ref FROM thalion.quality_decision").fetchone() == (decision,)
         register_csv(db, key="different-csv-version", source_version_key="csv-a")

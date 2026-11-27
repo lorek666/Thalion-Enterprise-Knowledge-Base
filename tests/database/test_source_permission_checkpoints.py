@@ -43,7 +43,7 @@ def test_upgrade_preserves_content_inventory_and_restriction_receipts(database_u
             connection, sync_request(connection, tenant, operation=reconciliation.COMMIT), source, declared, (),
         )
 
-        assert upgrade(database_url) == ["0112_flexible_vector_dimensions"]
+        assert upgrade(database_url) == ["0113_source_connector_cursor"]
         assert positions(connection, tenant, source) == (page.through, declared.snapshot_ref)
         read = sync_request(connection, tenant, operation=checkpoints.READ)
         assert checkpoints.read_permission_checkpoint(connection, read, source) is None

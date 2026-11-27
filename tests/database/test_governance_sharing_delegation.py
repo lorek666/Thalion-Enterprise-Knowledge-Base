@@ -94,7 +94,7 @@ def _cred_for(template, *, employee_ref: UUID, space_ref: UUID | None = None, op
 
 
 def test_governance_migration_and_db_guards(database_url, evidence_db):
-    assert upgrade(database_url) == ["0112_flexible_vector_dimensions"]
+    assert upgrade(database_url) == ["0113_source_connector_cursor"]
     connection, tenant, *_ = evidence_db
     now = datetime.now(UTC)
     ctx = request_for(connection, tenant, tenant.actor_id, "gov-guard-req", governance.MANAGE_DELEGATION)

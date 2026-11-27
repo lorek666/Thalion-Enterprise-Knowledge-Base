@@ -236,7 +236,7 @@ def sync_source_from_connector(
         connection, org_id, space_id, collector_id, config_revision, sync.READ, business_day=day
     )
     try:
-        current_position = sync.read_content_position(connection, read_ctx, sync_source)
+        current_position, saved_cursor = sync.read_content_checkpoint(connection, read_ctx, sync_source)
         finish_request(connection, org_id, read_ctx.request_id, "succeeded", int((monotonic() - read_started) * 1000))
     except (Error, ValueError, registry.SourceNotAdmitted) as exc:
         finish_request(connection, org_id, read_ctx.request_id, "rejected", int((monotonic() - read_started) * 1000))
@@ -245,12 +245,18 @@ def sync_source_from_connector(
     pages_committed = 0
     versions_registered: list[UUID] = []
     restrictions_ack: list[UUID] = []
-    cursor_str: str | None = str(current_position) if current_position is not None else None
+    cursor_str = saved_cursor or (str(current_position) if current_position is not None else None)
+    pending_pages = False
 
     # 2. Pull bounded incremental delta pages
     for _ in range(max_pages):
         try:
             delta_page = connector.fetch_delta_page(source_ref, cursor_str)
+            if delta_page.previous_cursor != cursor_str or not sync.is_connector_cursor(delta_page.through_cursor):
+                raise ConnectorPortUnavailable("Source connector returned an invalid cursor.")
+            through_uuid = _opaque_uuid(delta_page.through_cursor, _CURSOR_NAMESPACE, scope_prefix)
+            if through_uuid == current_position and (delta_page.items or delta_page.has_more):
+                raise ConnectorPortUnavailable("Source connector returned changes without advancing its cursor.")
         except ConnectorPortUnavailable as exc:
             return ConnectorSyncReport(
                 source_ref,
@@ -262,8 +268,8 @@ def sync_source_from_connector(
                 error=str(exc),
             )
 
-        through_uuid = _opaque_uuid(delta_page.through_cursor, _CURSOR_NAMESPACE, scope_prefix)
         if through_uuid == current_position and not delta_page.items and not delta_page.has_more:
+            pending_pages = False
             break
 
         originals: list[sync.PageOriginal] = []
@@ -294,6 +300,8 @@ def sync_source_from_connector(
                         )
                     )
                 elif action == "permission_revoked":
+                    if revocation_authority is None:
+                        raise ConnectorPortUnavailable("Source connector revocation requires an authority receipt.")
                     revocations.append(UUID(str(item["decision_ref"])))
                 else:
                     raise ValueError(f"Unsupported connector delta action: {action}")
@@ -308,54 +316,6 @@ def sync_source_from_connector(
                 content_position=current_position,
                 error=str(exc),
             )
-
-        if through_uuid != current_position:
-            commit_ctx, commit_started = _open_internal_write(
-                connection,
-                org_id,
-                space_id,
-                collector_id,
-                config_revision,
-                sync.COMMIT,
-                business_day=day,
-                idempotency_key=f"sync:{source_ref}:{contract_revision}:{through_uuid}",
-            )
-            try:
-                receipt = sync.commit_content_page(
-                    connection,
-                    commit_ctx,
-                    sync_source,
-                    sync.SourcePage(previous=current_position, through=through_uuid, items=tuple(originals)),
-                    store,
-                )
-                finish_request(
-                    connection, org_id, commit_ctx.request_id, "succeeded", int((monotonic() - commit_started) * 1000)
-                )
-                pages_committed += 1
-                versions_registered.extend(receipt.version_refs)
-                current_position = receipt.through
-                cursor_str = delta_page.through_cursor
-            except (
-                sync.CursorConflict,
-                registry.SourceDeletedConflict,
-                registry.SourceNotAdmitted,
-                IdempotencyConflict,
-                OriginalIntegrityError,
-                ValueError,
-                Error,
-            ) as exc:
-                finish_request(
-                    connection, org_id, commit_ctx.request_id, "rejected", int((monotonic() - commit_started) * 1000)
-                )
-                return ConnectorSyncReport(
-                    source_ref,
-                    "rejected",
-                    pages_committed=pages_committed,
-                    versions_registered=tuple(versions_registered),
-                    restrictions_acknowledged=tuple(restrictions_ack),
-                    content_position=current_position,
-                    error=str(exc),
-                )
 
         # Acknowledge any explicit removal / revocation items on this page
         for removal in removals:
@@ -437,7 +397,32 @@ def sync_source_from_connector(
                         error=str(exc),
                     )
 
-        if not delta_page.has_more:
+        commit_ctx, commit_started = _open_internal_write(
+            connection, org_id, space_id, collector_id, config_revision, sync.COMMIT,
+            business_day=day, idempotency_key=f"sync:{source_ref}:{contract_revision}:{through_uuid}",
+        )
+        try:
+            receipt = sync.commit_content_page(
+                connection, commit_ctx, sync_source,
+                sync.SourcePage(current_position, through_uuid, tuple(originals), delta_page.through_cursor), store,
+            )
+            finish_request(connection, org_id, commit_ctx.request_id, "succeeded", int((monotonic() - commit_started) * 1000))
+            pages_committed += 1
+            versions_registered.extend(receipt.version_refs)
+            current_position = receipt.through
+            cursor_str = delta_page.through_cursor
+        except (
+            sync.CursorConflict, registry.SourceDeletedConflict, registry.SourceNotAdmitted, IdempotencyConflict,
+            OriginalIntegrityError, ValueError, Error,
+        ) as exc:
+            finish_request(connection, org_id, commit_ctx.request_id, "rejected", int((monotonic() - commit_started) * 1000))
+            return ConnectorSyncReport(
+                source_ref, "rejected", pages_committed=pages_committed, versions_registered=tuple(versions_registered),
+                restrictions_acknowledged=tuple(restrictions_ack), content_position=current_position, error=str(exc),
+            )
+
+        pending_pages = delta_page.has_more
+        if not pending_pages:
             break
 
     # 3. Acknowledge any pending revocations from authority & advance permission checkpoint
@@ -555,7 +540,7 @@ def sync_source_from_connector(
     rec_snapshot_ref: UUID | None = None
     rec_matched = 0
     rec_diffs = 0
-    if reconcile:
+    if reconcile and not pending_pages:
         try:
             inventory = connector.fetch_full_inventory(source_ref)
         except ConnectorPortUnavailable as exc:
@@ -668,7 +653,8 @@ def sync_source_from_connector(
 
     return ConnectorSyncReport(
         source_ref=source_ref,
-        status="succeeded" if (pages_committed > 0 or restrictions_ack or rec_status == "reconciled") else "up_to_date",
+        status=("pending_pages" if pending_pages else "succeeded"
+                if pages_committed > 0 or restrictions_ack or rec_status == "reconciled" else "up_to_date"),
         pages_committed=pages_committed,
         versions_registered=tuple(versions_registered),
         restrictions_acknowledged=tuple(restrictions_ack),

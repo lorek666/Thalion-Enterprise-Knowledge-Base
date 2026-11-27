@@ -14,6 +14,7 @@ import pytest
 from enterprise_kb.modules.retrieval import vector
 from enterprise_kb.modules.sources import connector_sync, source_revocations
 from enterprise_kb.ports.adapters import HttpSecurityAuditLogAdapter, HttpSourceConnectorAdapter
+from enterprise_kb.ports.contracts import ConnectorDeltaPage
 from enterprise_kb.runtime.config import AuthenticatedEndpointConfig
 from enterprise_kb.worker import WorkerConfig, run_worker_cycle, run_worker_loop
 
@@ -32,6 +33,51 @@ DOC_TWO = "# 差旅制度二\n\n北京高铁二等座按实报销。\n".encode("
 def sync_db(runtime_db, tmp_path):
     connection, tenant, database_url = runtime_db
     return create_evidence_db(connection, tenant, database_url, tmp_path)
+
+
+def test_connector_resumes_the_exact_vendor_cursor_on_a_fresh_connection(sync_db):
+    connection, _, database_url, source_ref, store = sync_db
+    calls = []
+
+    class Connector:
+        admission = "synthetic_local"
+
+        def fetch_delta_page(self, ref, cursor):
+            assert ref == source_ref
+            calls.append(cursor)
+            if len(calls) == 1:
+                return ConnectorDeltaPage(None, "vendor-page=A+1/2", (), True)
+            assert cursor == "vendor-page=A+1/2"
+            return ConnectorDeltaPage(cursor, "vendor-page=B+2/3", (), False)
+
+    before = connector_sync.sync_source_from_connector(connection, source_ref, Connector(), store, max_pages=1)
+    assert before.pages_committed == 1
+    with open_database(database_url) as fresh:
+        after = connector_sync.sync_source_from_connector(fresh, source_ref, Connector(), store)
+    assert calls == [None, "vendor-page=A+1/2"]
+    assert after.pages_committed == 1
+    assert after.content_position != before.content_position
+    assert "vendor-page" not in json.dumps(after.to_dict())
+
+
+def test_connector_keeps_the_page_pending_until_removal_is_confirmed(sync_db):
+    connection, _, _, source_ref, store = sync_db
+    event_ref, decision_ref = uuid4(), uuid4()
+
+    class Connector:
+        admission = "synthetic_local"
+
+        def fetch_delta_page(self, ref, cursor):
+            assert cursor is None
+            return ConnectorDeltaPage(None, "vendor-unconfirmed-removal", ({
+                "action": "deleted", "object_key": "doc-1", "version_key": "v1",
+                "event_ref": str(event_ref), "decision_ref": str(decision_ref),
+            },), False)
+
+    for attempt in range(2):
+        result = connector_sync.sync_source_from_connector(connection, source_ref, Connector(), store)
+        assert result.status == "rejected" and result.pages_committed == 0
+        assert result.content_position is None
 
 
 def test_connector_sync_and_worker_full_automated_pipeline(sync_db, independent_authority, monkeypatch):

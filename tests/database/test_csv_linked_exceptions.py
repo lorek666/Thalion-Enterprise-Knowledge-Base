@@ -162,7 +162,7 @@ def test_upgrade_keeps_existing_approved_four_cell_groups(database_url, tmp_path
         prior_seal = assemble(db, first)
         assert prior_seal.status == "succeeded"
 
-        assert upgrade(database_url) == ["0112_flexible_vector_dimensions"]
+        assert upgrade(database_url) == ["0113_source_connector_cursor"]
         assert units(db, version) == original_groups
         inherited = assemble(db, inherited=(prior_seal.manifest_ref,))
         assert inherited.status == "succeeded" and inherited.payload == prior_seal.payload

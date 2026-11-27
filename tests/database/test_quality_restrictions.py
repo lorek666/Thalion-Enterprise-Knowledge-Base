@@ -25,7 +25,7 @@ def test_previous_quarantine_backfills_and_exact_log_can_resume_a_partial_delive
         run = processing.process_markdown_job(authority, claim(database), database[4])
         review(database, run)
         decision = review(database, run, decision="quarantined")
-        assert upgrade(database_url) == ["0112_flexible_vector_dimensions"]
+        assert upgrade(database_url) == ["0113_source_connector_cursor"]
         stream_ref, generation = authority.execute("""
             SELECT stream_ref, generation FROM thalion.quality_restriction_stream WHERE org_id = %s
             """, (tenant.org_id,)).fetchone()
@@ -145,7 +145,7 @@ def test_pdf_quality_migration_appends_historical_machine_quarantine_after_manua
                 INSERT INTO thalion.rule_log_entry (stream_ref, generation, decision_ref, payload) VALUES (%s, %s, %s, %s)
                 """, [(stream_ref, generation, ref, Jsonb(payload)) for generation, ref, payload in legacy_rows])
 
-        assert upgrade(database_url) == ["0112_flexible_vector_dimensions"]
+        assert upgrade(database_url) == ["0113_source_connector_cursor"]
 
         assert authority.execute("SELECT stream_ref, generation FROM thalion.quality_restriction_stream").fetchone() == (
             stream_ref, 3,

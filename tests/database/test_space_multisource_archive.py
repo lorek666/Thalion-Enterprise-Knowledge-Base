@@ -288,7 +288,7 @@ def _set_source_policy(connection, tenant, source_ref: UUID, *local_rules: polic
 def test_migration_0106_upgrade_db_guards_and_mcp_boundary(postgres_server, transport):
     with temporary_database(postgres_server) as fresh_url:
         migrate_to_revision(fresh_url, "0105_space_release_eval")
-        assert upgrade(fresh_url) == ["0112_flexible_vector_dimensions"]
+        assert upgrade(fresh_url) == ["0113_source_connector_cursor"]
 
     client, db, (owner, reviewer), credentials, live, *_ = transport
     connection, tenant, _, source_ref, _ = db

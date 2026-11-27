@@ -198,7 +198,7 @@ def test_upgrade_from_csv_units_preserves_existing_markdown_wiki_inputs(database
         prior = assemble(db, (passage,))
         assert prior.status == "succeeded"
 
-        assert upgrade(database_url) == ["0112_flexible_vector_dimensions"]
+        assert upgrade(database_url) == ["0113_source_connector_cursor"]
         inherited = assemble(db, inherited=(prior.manifest_ref,))
         assert inherited.status == "succeeded" and inherited.payload == prior.payload
         assert json.loads(inherited.payload) == ["Written approval required.\n"]

@@ -330,7 +330,7 @@ def test_upgrade_preserves_existing_passage_binding_without_granting_original(da
                 ) VALUES (%s, %s, %s, 2, %s, 'read_passage', 'allow', 'employee_evidence', 'employee', ARRAY['excerpt'], now())
             """, (*params[:2], source, params[2]))
             connection.execute("UPDATE thalion.source SET local_policy_revision = 2 WHERE source_id = %s", (source,))
-        assert upgrade(database_url) == ["0112_flexible_vector_dimensions"]
+        assert upgrade(database_url) == ["0113_source_connector_cursor"]
         assert connection.execute("""
             SELECT operation, effect, fields, version_ref FROM thalion.permission_binding
         """).fetchall() == [("read_passage", "allow", ["excerpt"], None)]

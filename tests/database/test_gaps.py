@@ -145,7 +145,7 @@ def test_empty_fingerprint_migration_keeps_legacy_scope_facts_and_rejects_inelig
             "INSERT INTO thalion.search_scope_observation VALUES (%s, %s, %s, false)",
             (tenant.org_id, tenant.space_id, origin),
         )
-        assert upgrade(database_url) == ["0112_flexible_vector_dimensions"]
+        assert upgrade(database_url) == ["0113_source_connector_cursor"]
         assert connection.execute("SELECT request_id, empty_fingerprint FROM thalion.search_scope_observation").fetchall() == [
             (origin, None),
         ]

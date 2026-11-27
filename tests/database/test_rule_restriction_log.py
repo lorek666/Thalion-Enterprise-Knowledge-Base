@@ -143,7 +143,7 @@ def test_upgrade_captures_old_restrictions_and_failed_local_record_leaves_no_gap
         db = create_evidence_db(source, tenant, database_url, tmp_path)
         version = register_markdown(db)
         first = stop(source, tenant, version.version_ref, "suspended")
-        assert upgrade(database_url) == ["0112_flexible_vector_dimensions"]
+        assert upgrade(database_url) == ["0113_source_connector_cursor"]
         assert source.execute("SELECT generation, decision_ref FROM thalion.rule_restriction_item").fetchall() == [
             (1, first),
         ]

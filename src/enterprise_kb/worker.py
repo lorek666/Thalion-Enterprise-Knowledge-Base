@@ -50,6 +50,7 @@ from enterprise_kb.ports.contracts import (
     SecurityAuditLogPort,
     SourceConnectorPort,
 )
+from enterprise_kb.ports.source_connectors import connector_for_source
 from enterprise_kb.runtime.audit_sink import (
     SecurityAuditDispatcher,
     SecurityAuditEvent,
@@ -356,12 +357,17 @@ def run_worker_cycle(config: WorkerConfig) -> WorkerCycleReport:
             with config.connect() as conn:
                 source_refs = config.source_refs or _discover_sources(conn, admission=admission)
             for source_ref in source_refs:
+                source_connector = connector_for_source(config.connector, source_ref)
+                if source_connector is None:
+                    if source_ref in config.source_refs:
+                        errors.append(f"sync[{source_ref}]: no connector configured")
+                    continue
                 try:
                     with config.connect() as conn:
                         report = connector_sync.sync_source_from_connector(
                             conn,
                             source_ref,
-                            config.connector,
+                            source_connector,
                             config.store,
                             revocation_authority=config.revocation_authority,
                             reconcile=config.reconcile_on_sync,
@@ -603,6 +609,7 @@ def main(argv: list[str] | None = None) -> int:
                 source_authority_ref=source_authority_ref,
                 security_log_ref=security_log_ref,
                 source_connector_system=(os.environ.get("THALION_SOURCE_CONNECTOR_SYSTEM") or "").strip() or None,
+                source_connector_map_ref=(os.environ.get("THALION_SOURCE_CONNECTOR_MAP_REF") or "").strip() or None,
                 **model_options,
                 **embedding_options,
             )

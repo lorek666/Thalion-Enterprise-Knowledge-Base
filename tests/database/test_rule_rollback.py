@@ -90,7 +90,7 @@ def _run_faulty_10(db, version, monkeypatch):
 
 
 def test_rule_rollback_migration_and_db_guards(database_url, evidence_db, monkeypatch):
-    assert upgrade(database_url) == ["0112_flexible_vector_dimensions"]
+    assert upgrade(database_url) == ["0113_source_connector_cursor"]
     connection, tenant, _, source, _ = evidence_db
     source_id = connection.execute(
         "SELECT object_id FROM thalion.object_identity WHERE org_id = %s AND space_id = %s AND object_type = 'source' AND public_id = %s",

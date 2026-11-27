@@ -452,6 +452,7 @@ def _run_production_mode(arguments) -> int:
             source_authority_ref=source_authority_ref,
             security_log_ref=security_log_ref,
             source_connector_system=(os.environ.get("THALION_SOURCE_CONNECTOR_SYSTEM") or "").strip() or None,
+            source_connector_map_ref=(os.environ.get("THALION_SOURCE_CONNECTOR_MAP_REF") or "").strip() or None,
             **model_options,
             **embedding_options,
         )

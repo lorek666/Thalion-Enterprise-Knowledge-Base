@@ -129,7 +129,7 @@ function renderSpace(payload) {
     metric("当前状态", lifecycleLabels[sp.lifecycle] || sp.lifecycle),
     metric("已收录文件", `${payload.documents.length} 份`),
     metric("AI 省流总结", rel.wiki_delivery_enabled ? "已开启给员工看" : "已关闭（仅查原文）"),
-    metric("OA 自动同步", payload.connector_configured ? "已接通" : "未接通", !payload.connector_configured),
+    metric("外部资料同步", payload.connector_configured ? "已接通" : "未接通", !payload.connector_configured),
   );
   mainCard.append(brand, counts);
 
@@ -175,8 +175,8 @@ async function triggerConnectorSync(sourceId, button, reportBox) {
       return;
     }
     const r = res.data;
-    reportBox.textContent = `同步完成（${r.status}）：拉取 ${r.pages_committed} 批，新入库 ${r.versions_registered.length} 个版本，权限收紧同步 ${r.restrictions_acknowledged.length} 条，漏同步检查：${r.reconciliation_status}。`;
-    await loadCatalog("已完成连接器同步并刷新目录。");
+    const status = r.status === "pending_pages" ? "还有文件没拉完，下次会接着同步" : "已检查最新文件";
+    await loadCatalog(`${status}。本次处理 ${r.pages_committed} 批、${r.versions_registered.length} 个文件版本。`);
   } catch {
     reportBox.textContent = "触发连接器同步时网络异常。";
   } finally {
@@ -200,6 +200,8 @@ function renderSources(payload) {
     const badgeRow = text("div", "");
     const statusPill = text("span", lifecycleLabels[src.lifecycle] || src.lifecycle, "wiki-state");
     if (src.lifecycle !== "active") statusPill.dataset.state = "needs_rebuild";
+    const connectorLabel = src.connector_kind === "confluence_cloud" ? "Confluence Cloud"
+      : src.connector_kind === "http" ? "外部系统" : "未接通";
     badgeRow.append(
       statusPill,
       text("span", `${admissionLabels[src.admission] || src.admission} · 接入版本 v${src.contract_revision}`, "wiki-generation"),
@@ -207,6 +209,7 @@ function renderSources(payload) {
     const counts = text("dl", "", "wiki-counts");
     counts.append(
       metric("已同步文件", `${src.document_count} 份`),
+      metric("从哪里同步", connectorLabel, !src.connector_kind),
       metric("历史版本", `${src.version_count} 个`),
       metric("最新同步进度", src.content_sync ? `第 #${src.content_sync.sequence} 批（${src.content_sync.item_count} 条）` : "还没同步过"),
       metric("最近漏文件核对", src.inventory_reconciliation ? `对上 ${src.inventory_reconciliation.matched_count} / ${src.inventory_reconciliation.entry_count} 份` : "还没全面核对"),
@@ -217,8 +220,10 @@ function renderSources(payload) {
       "wiki-generation repair-meta",
     );
     const actions = text("div", "", "work-buttons");
-    const syncBtn = dualLabelNode("button", "触发连接器同步", "立即从 OA 同步最新文件", "primary-button");
+    const syncBtn = dualLabelNode("button", "触发连接器同步",
+      src.connector_kind === "confluence_cloud" ? "从 Confluence 同步" : "立即从 OA 同步最新文件", "primary-button");
     syncBtn.type = "button";
+    syncBtn.disabled = !src.connector_kind || src.lifecycle !== "active";
     syncBtn.dataset.sourceSync = src.source_id;
     const statusLink = dualLabelNode("a", "查看详细水位", "看详细同步记录", "quiet-button");
     statusLink.href = "/manage/sources";

@@ -133,7 +133,7 @@ def test_upgrade_from_0101_preserves_existing_receipts_and_enforces_delete_isola
         ver = version_candidate(tenant, source_ref, object_key="legacy-doc", source_version_key="rev-1")
         page = sync.SourcePage(None, uuid4(), (sync.PageOriginal(ver, CONTENT),))
         receipt = sync.commit_content_page(connection, sync_request(connection, tenant), source, page, store)
-        assert upgrade(database_url) == ["0112_flexible_vector_dimensions"]
+        assert upgrade(database_url) == ["0113_source_connector_cursor"]
         assert sync.read_content_position(
             connection, sync_request(connection, tenant, operation=sync.READ), source,
         ) == page.through
