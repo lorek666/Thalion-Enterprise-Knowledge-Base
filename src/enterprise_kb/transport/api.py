@@ -19,7 +19,7 @@ from enterprise_kb.modules.lifecycle import (
     archives, backup_expiry, backup_inventory, disposition, holds, receipts, space_archive, verification,
 )
 from enterprise_kb.modules.operations import (
-    feedback, findings, gaps, handoffs, runtime_backlog, source_audit, source_sync_status,
+    admin, feedback, findings, gaps, handoffs, runtime_backlog, source_audit, source_sync_status,
 )
 from enterprise_kb.modules.sources import effectivity, ingest, responsibility
 
@@ -71,6 +71,8 @@ BACKUP_COPIES_PATH = "/internal/lifecycle/backup-copies"
 ORIGINAL_EXPORTS_PATH = "/internal/lifecycle/original-exports"
 SPACE_ARCHIVES_PATH = "/internal/lifecycle/space-archives"
 SOURCE_INGEST_PATH = "/internal/sources"
+SOURCE_OPTIONS_PATH = f"{SOURCE_INGEST_PATH}/options"
+ADMIN_DIRECTORY_PATH = "/internal/admin/directory"
 RETENTION_PATH = "/internal/lifecycle/retention-policy"
 HOLD_PATH = "/internal/lifecycle/holds"
 SEARCH_SCHEMA = {
@@ -211,7 +213,8 @@ class _Ingress:
         if (
             is_mcp or path in {"/v1/search", EMPLOYEE_SOURCE_OPTIONS_PATH, EMPLOYEE_DEPARTMENT_OPTIONS_PATH, EMPLOYEE_SUGGESTIONS_PATH, WIKI_STATUS_PATH, GLOSSARY_PATH,
                                RUNTIME_BACKLOG_PATH, FEEDBACK_PATH, DISPOSITION_PATH, DISPOSITION_CASES_PATH, RETENTION_PATH, HOLD_PATH,
-                               BACKUP_COPIES_PATH, ORIGINAL_EXPORTS_PATH, SPACE_ARCHIVES_PATH, EVIDENCE_RULES_PATH, GOVERNANCE_PATH}
+                               BACKUP_COPIES_PATH, ORIGINAL_EXPORTS_PATH, SPACE_ARCHIVES_PATH, EVIDENCE_RULES_PATH, GOVERNANCE_PATH,
+                               SOURCE_OPTIONS_PATH, ADMIN_DIRECTORY_PATH}
             or path.startswith(("/v1/passages/", f"{FEEDBACK_PATH}/", f"{DISPOSITION_CASES_PATH}/", f"{ORIGINAL_EXPORTS_PATH}/",
                                 f"{SPACE_ARCHIVES_PATH}/",
                                 f"{BACKUP_COPIES_PATH}/", f"{REPAIR_PATH}/", f"{PDF_CORRECTION_PATH}/",
@@ -602,6 +605,40 @@ def create_app(
         reply = await run_in_threadpool(service.execute_source_catalog, request.state.employee)
         request.state.evidence_reply = reply
         return _http_reply(reply)
+
+    @app.get(SOURCE_OPTIONS_PATH)
+    async def read_source_options(request: Request):
+        allowed = {"usage", "q", "limit", "after"}
+        if set(request.query_params) - allowed:
+            return _http_reply(error_reply("invalid_arguments"))
+        usage = request.query_params.get("usage", "")
+        query = request.query_params.get("q", "")
+        raw_limit = request.query_params.get("limit", "20")
+        after = request.query_params.get("after")
+        try:
+            limit = int(raw_limit)
+        except ValueError:
+            return _http_reply(error_reply("invalid_arguments"))
+        result = await run_in_threadpool(
+            admin.read_source_options, service.connect, request.state.employee,
+            usage=usage, query=query, limit=limit, after=after,
+        )
+        return Response(encode(result.payload), status_code=result.status, media_type="application/json", headers=NO_STORE)
+
+    @app.get(ADMIN_DIRECTORY_PATH)
+    async def read_admin_directory(request: Request):
+        allowed = {"q", "limit"}
+        if set(request.query_params) - allowed:
+            return _http_reply(error_reply("invalid_arguments"))
+        try:
+            limit = int(request.query_params.get("limit", "50"))
+        except ValueError:
+            return _http_reply(error_reply("invalid_arguments"))
+        result = await run_in_threadpool(
+            admin.read_directory_options, service.connect, request.state.employee,
+            query=request.query_params.get("q", ""), limit=limit,
+        )
+        return Response(encode(result.payload), status_code=result.status, media_type="application/json", headers=NO_STORE)
 
     @app.post(f"{SOURCE_INGEST_PATH}/{{source_id}}/connector-sync")
     async def trigger_connector_sync(request: Request, source_id: str):

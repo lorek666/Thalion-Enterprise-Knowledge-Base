@@ -96,6 +96,16 @@ body.manage-app {
   border: 1px solid var(--line-soft);
   border-radius: 12px;
 }
+.source-picker {
+  display: grid;
+  gap: 0.5rem;
+  max-width: 42rem;
+  padding: 0 1.25rem 1rem;
+}
+.source-picker > button {
+  width: 100%;
+  text-align: left;
+}
 .wiki-topic-header {
   display: flex;
   align-items: baseline;

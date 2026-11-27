@@ -87,11 +87,13 @@
         <button id="readers-logout" type="button" class="quiet-button"><span class="sr-only">更换凭据</span><span aria-hidden="true">切换账号 / 退出</span></button>
       </div>
       <form class="wiki-access-form" id="readers-lookup" autocomplete="off">
-        <label for="readers-source"><span class="sr-only">来源编号</span><span aria-hidden="true">要给哪个文件库设权限（填文件库编号）</span></label>
+        <label for="readers-source"><span class="sr-only">来源编号</span><span aria-hidden="true">搜索要设置权限的文件库</span></label>
         <div class="access-field">
-          <input id="readers-source" maxlength="36" spellcheck="false" placeholder="来源 UUID" required>
+          <input id="readers-source" maxlength="120" autocomplete="off" placeholder="输入文件库名称搜索" required>
           <button type="submit" class="quiet-button"><span class="sr-only">读取当前规则</span><span aria-hidden="true">查看现有权限</span></button>
         </div>
+        <div id="readers-source-options" class="result-list source-picker" role="listbox" aria-label="可管理文件库" hidden></div>
+        <input type="hidden" id="readers-source-id">
       </form>
       <p class="panel-status" id="readers-status" role="status"></p>
       <section class="work-detail" id="readers-ruleset" aria-labelledby="readers-ruleset-title" hidden>

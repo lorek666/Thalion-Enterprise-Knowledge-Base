@@ -21,7 +21,7 @@ from enterprise_kb.modules.lifecycle import (
     archive_rehearsal, archives, backup_expiry, backup_inventory, disposition, holds, receipts, space_archive, verification,
 )
 from enterprise_kb.modules.operations import (
-    feedback, findings, gaps, handoffs, release, runtime_backlog, source_audit, source_catalog, source_sync_status,
+    admin, feedback, findings, gaps, handoffs, release, runtime_backlog, source_audit, source_catalog, source_sync_status,
 )
 from enterprise_kb.modules.operations.context import OperationsCall, OperationsNotAdmitted, require_scope
 from enterprise_kb.modules import glossary
@@ -91,7 +91,10 @@ CREDENTIAL_OPERATIONS = OPERATIONS | INTERNAL_OPERATIONS | {
     feedback.EVIDENCE, management.WIKI_STATUS_OPERATION, "upload_source_batch", policy.ORIGINAL_DOWNLOAD_ACCESS[0],
     policy.WIKI_INPUT_ACCESS[0], policy.WIKI_CANDIDATE_ACCESS[0], policy.WIKI_PREVIEW_ACCESS[0],
     policy.WIKI_REVIEW_ACCESS[0], policy.WIKI_PUBLISH_ACCESS[0],
-} | rule_rollback.OPERATIONS | governance.OPERATIONS | release.OPERATIONS | glossary.OPERATIONS | departments.OPERATIONS | source_catalog.OPERATIONS | {space_archive.LIST, space_archive.VERIFY}
+} | rule_rollback.OPERATIONS | governance.OPERATIONS | release.OPERATIONS | glossary.OPERATIONS | departments.OPERATIONS | source_catalog.OPERATIONS | {
+    admin.READ_DIRECTORY, admin.READ_DASHBOARD, admin.MANAGE_TASKS, admin.MANAGE_DIRECTORY,
+    space_archive.LIST, space_archive.VERIFY,
+}
 MAX_REQUEST_TIME = timedelta(seconds=8)
 DATE_PATTERN = re.compile(r"[0-9]{4}-[0-9]{2}-[0-9]{2}")
 CLIENT_PATTERN = re.compile(r"[A-Za-z][A-Za-z0-9_.-]{0,127}")

@@ -3,16 +3,82 @@ const prefix = modelEgress ? "model-egress" : "readers";
 const endpoint = modelEgress ? "model-egress-policy" : "access-policy";
 const ruleLabel = modelEgress ? "外发规则" : "读者规则";
 const ui = Object.fromEntries([
-  "lock", "access", "token", "workspace", "logout", "lookup", "source", "status", "ruleset",
+  "lock", "access", "token", "workspace", "logout", "lookup", "source", "source-options", "source-id", "status", "ruleset",
   "meta", "retained", "editor", "basis", "confirm", "save", "rows", "row", "add",
 ].map(name => [name, document.getElementById(`${prefix}-${name}`)]));
 const uuid = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i;
+const sourcePicker = modelEgress ? null : ui["source-options"];
+const sourceStates = { active: "启用中", suspended: "已停用" };
 const zonedTime = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d{1,6})?(?:Z|[+-]\d{2}:\d{2})$/;
 const editorRule = modelEgress
   ? { operation: "send_model_evidence", destination: "synthetic-gateway" }
   : { operation: "read_passage", purpose: "employee_evidence", destination: "employee" };
 const missingResponse = "未收到规则操作结果；保存结果未知时请保留表单原样重试。";
 let session = null;
+let sourceSearch = null;
+let sourceTimer = null;
+
+function clearSourceOptions() {
+  sourceSearch?.abort();
+  sourceSearch = null;
+  clearTimeout(sourceTimer);
+  sourceTimer = null;
+  if (!sourcePicker) return;
+  ui["source-id"].value = "";
+  sourcePicker.hidden = true;
+  sourcePicker.replaceChildren();
+}
+
+async function searchSources(query) {
+  const active = session;
+  if (!active || !sourcePicker || !query || uuid.test(query)) return;
+  sourceSearch?.abort();
+  const controller = new AbortController();
+  sourceSearch = controller;
+  const current = () => session === active && sourceSearch === controller && !controller.signal.aborted;
+  ui.status.textContent = "正在搜索可管理的文件库…";
+  try {
+    const response = await fetch(`/internal/sources/options?usage=readers&q=${encodeURIComponent(query)}&limit=20`, {
+      headers: { Authorization: `Bearer ${active.token}` }, signal: controller.signal,
+      cache: "no-store", credentials: "omit", mode: "same-origin", redirect: "error", referrerPolicy: "no-referrer",
+    });
+    if (!current()) return;
+    if (response.status === 401) return lock("凭据无效或已过期，请重新载入。", true);
+    if (response.status === 403) {
+      ui.status.textContent = "当前凭据不能搜索可管理的文件库。";
+      return;
+    }
+    if (!response.ok) throw new Error("Source options are unavailable.");
+    const data = await response.json();
+    if (!current()) return;
+    if (!Array.isArray(data.sources) || data.sources.length > 20) throw new TypeError("Invalid source options.");
+    const options = data.sources.map(source => {
+      if (!uuid.test(source.id) || typeof source.name !== "string" || typeof source.status !== "string") {
+        throw new TypeError("Invalid source option.");
+      }
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "quiet-button";
+      button.setAttribute("role", "option");
+      button.textContent = `${source.name} · ${sourceStates[source.status] ?? source.status}`;
+      button.addEventListener("click", () => {
+        if (session !== active) return;
+        ui.source.value = source.name;
+        clearSourceOptions();
+        ui["source-id"].value = source.id;
+        send(source.id, null, body => renderSnapshot(source.id, body));
+      });
+      return button;
+    });
+    sourcePicker.replaceChildren(...options);
+    sourcePicker.hidden = options.length === 0;
+    ui.status.textContent = options.length ? "请选择要设置权限的文件库。" : "没有找到可管理的文件库。";
+  } catch {
+    if (current()) ui.status.textContent = "暂时无法搜索文件库，请稍后重试。";
+  } finally {
+    if (current()) sourceSearch = null;
+  }
+}
 
 function clearSnapshot() {
   if (session) {
@@ -27,17 +93,19 @@ function clearSnapshot() {
   ui.save.disabled = true;
 }
 
-function lock() {
+function lock(message = "", focus = false) {
   session?.pending?.abort();
   session = null;
+  clearSourceOptions();
   clearSnapshot();
   ui.lookup.reset();
   ui.lookup.inert = false;
   ui.editor.inert = false;
   ui.token.value = "";
-  ui.status.textContent = "";
+  ui.status.textContent = message;
   ui.workspace.hidden = true;
   ui.lock.hidden = false;
+  if (focus) ui.token.focus();
 }
 
 function requireConfirmation() {
@@ -183,17 +251,25 @@ ui.source.addEventListener("input", () => {
   session.pending?.abort();
   session.pending = null;
   clearSnapshot();
+  clearSourceOptions();
   ui.status.textContent = "";
+  if (sourcePicker && !uuid.test(ui.source.value.trim())) {
+    sourceTimer = setTimeout(() => searchSources(ui.source.value.trim()), 180);
+  }
 });
 ui.lookup.addEventListener("submit", event => {
   event.preventDefault();
   if (!session || ui.lookup.inert) return;
   clearSnapshot();
-  const source = ui.source.value.trim().toLowerCase();
+  const query = ui.source.value.trim();
+  const source = (ui["source-id"].value || query).toLowerCase();
   if (!uuid.test(source)) {
-    ui.status.textContent = "请输入有效的来源编号。";
+    if (sourcePicker) searchSources(query);
+    else ui.status.textContent = "请输入有效的来源编号。";
     return;
   }
+  clearSourceOptions();
+  ui["source-id"].value = source;
   send(source, null, body => renderSnapshot(source, body));
 });
 ui.add.addEventListener("click", () => {

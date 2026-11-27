@@ -84,18 +84,20 @@
     </section>
     <section class="ledger-panel" id="sources-workspace" hidden aria-labelledby="sources-title">
       <div class="panel-heading">
-        <h2 id="sources-title" tabindex="-1"><span class="sr-only">查询来源水位与状态</span><span aria-hidden="true">输入文件库编号查看 OA 同步详情</span></h2>
+        <h2 id="sources-title" tabindex="-1"><span class="sr-only">查询来源水位与状态</span><span aria-hidden="true">搜索文件库查看 OA 同步详情</span></h2>
         <div class="action-group">
           <button id="sources-refresh" class="quiet-button" type="button" hidden><span class="sr-only">刷新状态</span><span aria-hidden="true">重新检查</span></button>
           <button id="sources-logout" class="quiet-button" type="button"><span class="sr-only">退出管理</span><span aria-hidden="true">退出后台</span></button>
         </div>
       </div>
       <form class="wiki-access-form" id="sources-lookup" autocomplete="off">
-        <label for="sources-id"><span class="sr-only">来源编号</span><span aria-hidden="true">要查哪个外部文件库（填文件库编号）</span></label>
+        <label for="sources-id"><span class="sr-only">来源编号</span><span aria-hidden="true">搜索要查看同步状态的文件库</span></label>
         <div class="access-field">
-          <input id="sources-id" maxlength="36" spellcheck="false" placeholder="粘贴外部文件库编号（UUID）" required>
+          <input id="sources-id" maxlength="120" autocomplete="off" placeholder="输入文件库名称搜索" required>
           <button type="submit" class="primary-button"><span class="sr-only">查看同步状态</span><span aria-hidden="true">查询 OA 同步详情</span></button>
         </div>
+        <div id="sources-options" class="result-list source-picker" role="listbox" aria-label="可查看文件库" hidden></div>
+        <input type="hidden" id="sources-id-value">
       </form>
       <p id="sources-status" class="panel-status" role="status"></p>
       <ul class="result-list" id="sources-sections" aria-busy="false"></ul>

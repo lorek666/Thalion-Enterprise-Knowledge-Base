@@ -1,5 +1,5 @@
 const ui = Object.fromEntries([
-  "lock", "access", "token", "lock-message", "workspace", "title", "lookup", "id",
+  "lock", "access", "token", "lock-message", "workspace", "title", "lookup", "id", "id-value", "options",
   "refresh", "logout", "status", "sections",
 ].map(name => [name, document.getElementById(`sources-${name}`)]));
 
@@ -17,6 +17,68 @@ const utcTime = new Intl.DateTimeFormat("zh-CN", {
   minute: "2-digit", second: "2-digit", hourCycle: "h23",
 });
 let session = null;
+let sourceTimer = null;
+
+function clearSourceOptions() {
+  session?.search?.abort();
+  if (session) session.search = null;
+  clearTimeout(sourceTimer);
+  sourceTimer = null;
+  ui["id-value"].value = "";
+  ui.options.hidden = true;
+  ui.options.replaceChildren();
+}
+
+async function searchSources(query) {
+  const owner = session;
+  if (owner === null || !query || uuidPattern.test(query)) return;
+  owner.search?.abort();
+  const controller = new AbortController();
+  owner.search = controller;
+  const current = () => session === owner && owner.search === controller && !controller.signal.aborted;
+  ui.status.textContent = "正在搜索可查看的文件库…";
+  try {
+    const response = await fetch(`/internal/sources/options?usage=sync&q=${encodeURIComponent(query)}&limit=20`, {
+      headers: { Authorization: `Bearer ${owner.token}` }, signal: controller.signal,
+      cache: "no-store", credentials: "omit", mode: "same-origin", redirect: "error", referrerPolicy: "no-referrer",
+    });
+    if (!current()) return;
+    if (response.status === 401) return lock("凭据无效或已过期，请重新载入。", true);
+    if (response.status === 403) {
+      ui.status.textContent = "当前凭据不能搜索可查看的文件库。";
+      return;
+    }
+    if (!response.ok) throw new Error("Source options are unavailable.");
+    const data = await response.json();
+    if (!current()) return;
+    if (!Array.isArray(data.sources) || data.sources.length > 20) throw new TypeError("Invalid source options.");
+    const options = data.sources.map(source => {
+      if (!uuidPattern.test(source.id) || typeof source.name !== "string" || typeof source.status !== "string") {
+        throw new TypeError("Invalid source option.");
+      }
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "quiet-button";
+      button.setAttribute("role", "option");
+      button.textContent = `${source.name} · ${lifecycleLabels[source.status] ?? source.status}`;
+      button.addEventListener("click", () => {
+        if (session !== owner) return;
+        ui.id.value = source.name;
+        clearSourceOptions();
+        ui["id-value"].value = source.id;
+        load(source.id);
+      });
+      return button;
+    });
+    ui.options.replaceChildren(...options);
+    ui.options.hidden = options.length === 0;
+    ui.status.textContent = options.length ? "请选择要查看同步状态的文件库。" : "没有找到可查看的文件库。";
+  } catch {
+    if (current()) ui.status.textContent = "暂时无法搜索文件库，请稍后重试。";
+  } finally {
+    if (current()) owner.search = null;
+  }
+}
 
 function text(tag, value, className) {
   const node = document.createElement(tag);
@@ -65,10 +127,12 @@ function resetSnapshot() {
 function lock(message = "", focus = false) {
   if (session !== null) {
     session.pending?.abort();
+    session.search?.abort();
     session.token = "";
     session.sourceId = "";
   }
   session = null;
+  clearSourceOptions();
   ui.token.value = "";
   ui.id.value = "";
   ui.refresh.hidden = true;
@@ -307,9 +371,30 @@ ui.access.addEventListener("submit", event => {
   ui.workspace.hidden = false;
   ui.id.focus();
 });
+ui.id.addEventListener("input", () => {
+  if (!session) return;
+  session.pending?.abort();
+  session.pending = null;
+  clearSourceOptions();
+  session.sourceId = "";
+  ui.refresh.hidden = true;
+  resetSnapshot();
+  if (!uuidPattern.test(ui.id.value.trim())) {
+    sourceTimer = setTimeout(() => searchSources(ui.id.value.trim()), 180);
+  }
+});
 ui.lookup.addEventListener("submit", event => {
   event.preventDefault();
-  load(ui.id.value);
+  if (!session) return;
+  const query = ui.id.value.trim();
+  const sourceId = ui["id-value"].value || query;
+  if (!uuidPattern.test(sourceId)) {
+    searchSources(query);
+    return;
+  }
+  clearSourceOptions();
+  ui["id-value"].value = sourceId;
+  load(sourceId);
 });
 ui.refresh.addEventListener("click", () => {
   if (session?.sourceId) load(session.sourceId);
