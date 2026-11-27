@@ -1205,7 +1205,6 @@ def test_bidirectional_isolation_service_worker_queries_and_database_triggers(ru
 def test_thalion_worker_production_cli_check_config_and_flag_isolation(
     database_url, monkeypatch, capsys, tmp_path
 ):
-    upgrade(database_url)
     prod_env = {
         "THALION_MODE": "production",
         "THALION_BUSINESS_TIMEZONE": "Asia/Shanghai",
@@ -1240,6 +1239,14 @@ def test_thalion_worker_production_cli_check_config_and_flag_isolation(
     for env_key, env_value in prod_env.items():
         monkeypatch.setenv(env_key, env_value)
 
+    for command in ("--check-config", "--once"):
+        assert worker.main(["--mode", "production", command]) == 1
+        failure = capsys.readouterr()
+        assert not failure.out
+        assert "迁移" in failure.err
+        assert database_url not in failure.err
+
+    upgrade(database_url)
     exit_code = worker.main(["--mode", "production", "--check-config"])
     assert exit_code == 0
     summary_raw = capsys.readouterr().out

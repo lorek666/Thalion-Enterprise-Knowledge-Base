@@ -16,7 +16,7 @@ from psycopg import Connection, Error
 from sqlalchemy.exc import ArgumentError
 
 from enterprise_kb import runtime_alerts
-from enterprise_kb.database import local_connection_factory, production_connection_factory
+from enterprise_kb.database import local_connection_factory, production_connection_factory, require_current_schema
 from enterprise_kb.modules.evidence.pdf_evidence import Tesseract
 from enterprise_kb.modules.evidence.processing import (
     ProcessingDependencyUnavailable,
@@ -574,7 +574,7 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--originals", type=Path, help="私有原件目录绝对路径（synthetic_local 模式必填）")
     parser.add_argument("--database-url", default="", help="数据库连接串（默认读取 THALION_DATABASE_URL）")
     parser.add_argument("--once", action="store_true", help="仅执行一轮后台巡检并输出 JSON 摘要后退出")
-    parser.add_argument("--check-config", action="store_true", help="仅校验守护进程配置、端口装配与数据库连接后退出")
+    parser.add_argument("--check-config", action="store_true", help="校验后台配置和数据库后退出；生产模式同时核对迁移版本")
     parser.add_argument("--interval-seconds", type=float, default=15.0, help="常驻循环轮询间隔秒数")
     parser.add_argument("--source-id", type=UUID, action="append", default=[], help="指定同步来源 UUID（可重复）")
     parser.add_argument("--reconcile", action="store_true", help="同步后执行全量清单对账")
@@ -639,13 +639,13 @@ def main(argv: list[str] | None = None) -> int:
         ) as exc:
             print(f"FAIL 无法验证生产模式守护进程配置或外部端口：{exc}", file=sys.stderr)
             return 1
+        try:
+            with connect() as conn:
+                require_current_schema(conn)
+        except (ValueError, psycopg.Error):
+            print("FAIL 无法确认生产数据库可用且已完成迁移。请检查连接并先执行数据库迁移。", file=sys.stderr)
+            return 1
         if args.check_config:
-            try:
-                with connect() as conn:
-                    conn.execute("SELECT 1").fetchone()
-            except psycopg.Error as exc:
-                print(f"FAIL 生产数据库连接校验失败：{exc}", file=sys.stderr)
-                return 1
             summary = {
                 "status": "ok",
                 "mode": "production",
