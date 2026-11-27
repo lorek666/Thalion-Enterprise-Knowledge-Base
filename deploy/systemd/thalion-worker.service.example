@@ -1,0 +1,50 @@
+# Thalion 生产后台任务单元模板（同步、解析、索引和积压告警）
+# 安装示例：
+#   sudo install -m 0644 deploy/systemd/thalion-worker.service.example /etc/systemd/system/thalion-worker.service
+#   sudo systemctl daemon-reload && sudo systemctl enable --now thalion-worker.service
+
+[Unit]
+Description=Thalion Enterprise Knowledge Base Worker (Production)
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=thalion
+Group=thalion
+WorkingDirectory=/var/lib/thalion
+EnvironmentFile=/etc/thalion/thalion.env
+Environment=PYTHONDONTWRITEBYTECODE=1
+Environment=PYTHONUNBUFFERED=1
+UMask=0077
+
+# 启动前检查生产端口、数据库连接和完整迁移头
+ExecStartPre=/opt/thalion-venv/bin/thalion-worker \
+    --mode production \
+    --check-config
+
+# 默认每五分钟执行一轮；需要更短间隔时修改下面的秒数并重新加载单元
+ExecStart=/opt/thalion-venv/bin/thalion-worker \
+    --mode production \
+    --interval-seconds 300
+
+Restart=on-failure
+RestartSec=5
+TimeoutStartSec=60
+TimeoutStopSec=30
+
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+LockPersonality=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+[Install]
+WantedBy=multi-user.target
