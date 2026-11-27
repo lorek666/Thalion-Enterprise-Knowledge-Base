@@ -1,0 +1,31 @@
+# Thalion 后台任务积压巡检单元模板（将合成空间告警状态变化写入本地发件箱）
+# 需配合 deploy/systemd/thalion-runtime-alerts.timer.example 使用。
+
+[Unit]
+Description=Thalion Runtime Backlog Alert Poller (Synthetic Space)
+After=network-online.target postgresql.service
+
+[Service]
+Type=oneshot
+User=thalion
+Group=thalion
+WorkingDirectory=/var/lib/thalion
+EnvironmentFile=/etc/thalion/thalion.env
+UMask=0077
+
+ExecStart=/opt/thalion-venv/bin/python -I -m enterprise_kb.runtime_alerts \
+    --space-id ${THALION_ALERT_SPACE_ID} \
+    --synthetic
+
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+LockPersonality=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX

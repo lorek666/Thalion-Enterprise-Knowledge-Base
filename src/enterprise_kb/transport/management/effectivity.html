@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>设生效时间上线 · 知识库管理后台</title>
+  <link rel="stylesheet" href="/employee/portal.css">
+  <link rel="stylesheet" href="/manage/wiki.css">
+  <script src="/manage/effectivity.js" defer></script>
+  <script type="module" src="/manage/sso.js"></script>
+</head>
+<body class="manage-app">
+  <aside class="ink-sidebar" aria-label="管理入口">
+    <div class="sb-content">
+      <div class="sb-head-row">
+        <a class="sb-brand" href="/manage/catalog">
+          <span class="sb-seal" aria-hidden="true">效</span>
+          <span>
+            <strong class="sb-title">知识库管理后台</strong>
+            <small class="sb-subtitle">管文件 · 设权限 · 看审核</small>
+          </span>
+        </a>
+      </div>
+      <div class="sb-nav-scroll">
+        <div class="sb-section-label">文件与同步</div>
+        <nav class="sb-nav" aria-label="文件与同步">
+          <a class="sb-item" href="/manage/catalog"><span class="sr-only">空间目录</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>全部制度文件</span></a>
+          <a class="sb-item" href="/manage/ingest"><span class="sr-only">资料入库</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>上传新文件</span></a>
+          <a class="sb-item" href="/manage/sources"><span class="sr-only">来源同步</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>OA 自动同步状态</span></a>
+          <a class="sb-item" href="/manage/glossary"><span class="sr-only">业务词典</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>搜索近义词表</span></a>
+        </nav>
+        <div class="sb-section-label">审核与谁能看</div>
+        <nav class="sb-nav" aria-label="审核与谁能看">
+          <a class="sb-item" href="/manage/repairs"><span class="sr-only">校订审核</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>核对识别出的文字</span></a>
+          <a class="sb-item active" href="/manage/effectivity" aria-current="page"><span class="sr-only">生效审批</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>设生效时间上线</span></a>
+          <a class="sb-item" href="/manage/responsibility"><span class="sr-only">资料负责人</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>指定制度联系人</span></a>
+          <a class="sb-item" href="/manage/readers"><span class="sr-only">读者规则</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>设置谁有权限看</span></a>
+          <a class="sb-item" href="/manage/governance"><span class="sr-only">空间治理</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>临时共享与交接</span></a>
+          <a class="sb-item" href="/manage/model-egress"><span class="sr-only">外发规则</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>AI 允许读哪些文件</span></a>
+        </nav>
+        <div class="sb-section-label">省流总结与记录</div>
+        <nav class="sb-nav" aria-label="省流总结与记录">
+          <a class="sb-item" href="/manage/wiki"><span class="sr-only">发布台账</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>核对 AI 省流总结</span></a>
+          <a class="sb-item" href="/manage/feedback"><span class="sr-only">纠错办理</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>员工报错反馈</span></a>
+          <a class="sb-item" href="/manage/runtime"><span class="sr-only">任务积压</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>后台排队进度</span></a>
+          <a class="sb-item" href="/manage/lifecycle"><span class="sr-only">保留处置与审计</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>清理与操作记录</span></a>
+          <a class="sb-item" href="/manage/archives"><span class="sr-only">归档导出</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>打包备份导出</span></a>
+        </nav>
+      </div>
+      <a class="sb-bottom-card" href="/">
+        <span class="sr-only">员工取证</span>
+        <span aria-hidden="true">返回员工查制度页</span>
+        <span class="gold-arrow" aria-hidden="true">↗</span>
+      </a>
+    </div>
+  </aside>
+  <div class="main-shell">
+    <header class="site-bar">
+      <div class="site-bar-inner">
+        <div class="top-tabs">
+          <span class="top-tab active">设生效时间上线</span>
+          <span class="top-subnote">设置新制度从哪天起正式执行、旧版哪天停用</span>
+        </div>
+        <div class="session-controls">
+          <span class="seal-pill"><span class="gold-dot" aria-hidden="true"></span>支持提前预览换版影响，避免新旧规定打架</span>
+        </div>
+      </div>
+    </header>
+    <main class="page-width wiki-management">
+      <header class="ledger-heading">
+        <h1>设置制度生效日期 &amp; 换版上线</h1>
+        <p>指定某份制度从哪天开始执行、适用哪个地区；上线前可先点“预览切换与影响”，看看会不会和现有规定冲突。</p>
+      </header>
+    <section class="ledger-panel" id="effectivity-lock" aria-labelledby="effectivity-access-title">
+      <div class="panel-heading"><h2 id="effectivity-access-title"><span class="sr-only">审批人凭据</span><span aria-hidden="true">输入审批人口令</span></h2><span class="local-label"><span></span>验证口令后进入</span></div>
+      <form class="wiki-access-form" id="effectivity-access" autocomplete="off">
+        <label for="effectivity-token"><span class="sr-only">管理测试凭据</span><span aria-hidden="true">审批人口令</span></label>
+        <div class="access-field">
+          <input type="password" id="effectivity-token" autocomplete="off" spellcheck="false" maxlength="16384" required>
+          <button type="submit" class="primary-button"><span class="sr-only">载入审批凭据</span><span aria-hidden="true">进入生效设置</span></button>
+        </div>
+        <p class="status-message" id="effectivity-lock-message" role="status"></p>
+      </form>
+    </section>
+    <section class="ledger-panel" id="effectivity-workspace" aria-labelledby="effectivity-title" hidden>
+      <div class="panel-heading">
+        <h2 id="effectivity-title"><span class="sr-only">生效决定</span><span aria-hidden="true">设置新制度从哪天开始执行</span></h2>
+        <button id="effectivity-logout" class="quiet-button" type="button"><span class="sr-only">更换凭据</span><span aria-hidden="true">切换账号 / 退出</span></button>
+      </div>
+      <form class="wiki-access-form" id="effectivity-form" autocomplete="off">
+        <label for="effectivity-version"><span class="sr-only">资料版本编号</span><span aria-hidden="true">要上线哪份文件的版本编号</span></label>
+        <input id="effectivity-version" name="version" maxlength="36" spellcheck="false" placeholder="版本 UUID" required>
+        <label for="effectivity-start"><span class="sr-only">生效日期</span><span aria-hidden="true">从哪天开始正式执行</span></label>
+        <input type="date" id="effectivity-start" name="valid_from" required>
+        <label for="effectivity-end"><span class="sr-only">结束日期（选填）</span><span aria-hidden="true">到哪天截止（长期有效就留空）</span></label>
+        <input type="date" id="effectivity-end" name="valid_to" aria-describedby="effectivity-end-hint">
+        <p class="input-hint" id="effectivity-end-hint">不含结束当天；留空表示不设截止日期。</p>
+        <label for="effectivity-basis"><span class="sr-only">审批依据编号</span><span aria-hidden="true">审批留档单号（UUID）</span></label>
+        <input id="effectivity-basis" name="basis_id" maxlength="36" spellcheck="false" placeholder="依据 UUID" required>
+        <label for="effectivity-region"><span class="sr-only">地区（选填）</span><span aria-hidden="true">只对哪个城市/区域适用（全国通用就留空）</span></label>
+        <input id="effectivity-region" name="region" maxlength="128" spellcheck="false" placeholder="地区代码，如 shanghai">
+        <label for="effectivity-traveler"><span class="sr-only">人员类别（选填）</span><span aria-hidden="true">只对哪类员工适用（全员通用就留空）</span></label>
+        <input id="effectivity-traveler" name="traveler_class" maxlength="128" spellcheck="false" placeholder="人员类别代码，如 employee">
+        <p class="input-hint">上面两项留空就代表全国、全体员工都适用。</p>
+        <label for="effectivity-replaces"><span class="sr-only">被替代决定编号（选填）</span><span aria-hidden="true">要顶替掉哪条旧版上线记录（新制度留空）</span></label>
+        <input id="effectivity-replaces" name="replaces_id" maxlength="36" spellcheck="false" placeholder="决定 UUID">
+        <div class="work-buttons">
+          <button id="effectivity-preview-btn" class="quiet-button" type="button"><span class="sr-only">预览切换与影响</span><span aria-hidden="true">先检查有没有冲突</span></button>
+          <button id="effectivity-submit" class="primary-button" type="submit"><span class="sr-only">登记生效决定</span><span aria-hidden="true">确认按此日期上线</span></button>
+        </div>
+      </form>
+      <p class="panel-status" id="effectivity-status" role="status"></p>
+      <section class="ledger-panel work-detail" id="effectivity-preview" aria-labelledby="effectivity-preview-title" hidden>
+        <div class="panel-heading"><h2 id="effectivity-preview-title"><span class="sr-only">换版影响预览</span><span aria-hidden="true">上线前影响检查结果</span></h2></div>
+        <p class="panel-status" id="effectivity-preview-summary"></p>
+        <p class="panel-status" id="effectivity-preview-readiness"></p>
+        <ul id="effectivity-preview-wiki"></ul>
+        <ul id="effectivity-preview-overlaps"></ul>
+      </section>
+      <section class="ledger-panel work-detail" id="effectivity-receipt" aria-labelledby="effectivity-receipt-title" hidden>
+        <div class="panel-heading"><h2 id="effectivity-receipt-title"><span class="sr-only">审批回执</span><span aria-hidden="true">上线设置已生效回执</span></h2></div>
+        <p class="panel-status">决定编号：<span id="effectivity-decision"></span></p>
+        <p class="panel-status">请求编号：<span id="effectivity-request"></span></p>
+      </section>
+      <section class="ledger-panel work-detail" aria-labelledby="effectivity-stop-title">
+        <div class="panel-heading"><h2 id="effectivity-stop-title"><span class="sr-only">撤回与暂停版本</span><span aria-hidden="true">紧急下线或暂停某份旧制度</span></h2></div>
+        <form class="wiki-access-form" id="effectivity-stop-form" autocomplete="off">
+          <label for="effectivity-stop-version"><span class="sr-only">待撤回/暂停版本编号</span><span aria-hidden="true">要下线或暂停哪份文件的版本编号</span></label>
+          <input id="effectivity-stop-version" name="version" maxlength="36" spellcheck="false" placeholder="版本 UUID" required>
+          <label for="effectivity-stop-kind"><span class="sr-only">停用类型</span><span aria-hidden="true">选择下线方式</span></label>
+          <select id="effectivity-stop-kind" name="kind">
+            <option value="withdrawn">永久废止撤回（员工以后不再查到）</option>
+            <option value="suspended">先临时暂停隐藏（核实后再恢复）</option>
+          </select>
+          <label for="effectivity-stop-basis"><span class="sr-only">停用依据编号</span><span aria-hidden="true">下线留档单号（UUID）</span></label>
+          <input id="effectivity-stop-basis" name="basis_id" maxlength="36" spellcheck="false" placeholder="依据 UUID" required>
+          <label for="effectivity-stop-reason"><span class="sr-only">撤回/暂停原因</span><span aria-hidden="true">为什么要下线或暂停这份制度</span></label>
+          <textarea id="effectivity-stop-reason" name="reason" maxlength="500" rows="2" placeholder="说明撤回或暂停原因" required></textarea>
+          <div class="work-buttons">
+            <button id="effectivity-stop-preview-btn" class="quiet-button" type="button"><span class="sr-only">预览撤回影响</span><span aria-hidden="true">先看下线会影响哪些总结</span></button>
+            <button id="effectivity-stop-submit" class="primary-button" type="submit"><span class="sr-only">执行撤回/暂停</span><span aria-hidden="true">确认下线 / 暂停</span></button>
+          </div>
+        </form>
+        <p class="panel-status" id="effectivity-stop-status" role="status"></p>
+        <ul id="effectivity-stop-impact"></ul>
+      </section>
+      <section class="ledger-panel work-detail" aria-labelledby="effectivity-conflict-title">
+        <div class="panel-heading"><h2 id="effectivity-conflict-title"><span class="sr-only">适用范围重叠争议与裁定</span><span aria-hidden="true">新旧规定时间冲突提醒 &amp; 处理</span></h2></div>
+        <form class="wiki-access-form" id="effectivity-conflict-form" autocomplete="off">
+          <label for="effectivity-conflict-version"><span class="sr-only">候选版本编号</span><span aria-hidden="true">新拟上线的文件版本编号</span></label>
+          <input id="effectivity-conflict-version" name="version" maxlength="36" spellcheck="false" placeholder="候选版本 UUID" required>
+          <label for="effectivity-conflict-existing"><span class="sr-only">重叠现有决定编号</span><span aria-hidden="true">跟哪条现行生效记录打架了（填编号）</span></label>
+          <input id="effectivity-conflict-existing" name="existing_decision_id" maxlength="36" spellcheck="false" placeholder="现有决定 UUID" required>
+          <label for="effectivity-conflict-start"><span class="sr-only">争议起始日</span><span aria-hidden="true">冲突从哪天开始</span></label>
+          <input type="date" id="effectivity-conflict-start" name="valid_from" required>
+          <label for="effectivity-conflict-end"><span class="sr-only">争议截止日（选填）</span><span aria-hidden="true">冲突到哪天结束（选填）</span></label>
+          <input type="date" id="effectivity-conflict-end" name="valid_to">
+          <label for="effectivity-conflict-region"><span class="sr-only">争议适用地域（选填）</span><span aria-hidden="true">冲突涉及哪个城市范围（选填）</span></label>
+          <input id="effectivity-conflict-region" name="region" maxlength="128" spellcheck="false">
+          <label for="effectivity-conflict-traveler"><span class="sr-only">争议适用人群（选填）</span><span aria-hidden="true">冲突涉及哪些对象（选填）</span></label>
+          <input id="effectivity-conflict-traveler" name="traveler_class" maxlength="128" spellcheck="false">
+          <label for="effectivity-conflict-basis"><span class="sr-only">登记依据编号</span><span aria-hidden="true">记录冲突的留档单号（UUID）</span></label>
+          <input id="effectivity-conflict-basis" name="basis_id" maxlength="36" spellcheck="false" placeholder="依据 UUID" required>
+          <label for="effectivity-conflict-summary"><span class="sr-only">争议说明</span><span aria-hidden="true">把两份规定冲突的地方写清楚</span></label>
+          <textarea id="effectivity-conflict-summary" name="summary" maxlength="500" rows="2" placeholder="说明适用范围重叠且无明确替代关系的情况" required></textarea>
+          <div class="work-buttons">
+            <button id="effectivity-conflict-submit" class="primary-button" type="submit"><span class="sr-only">登记重叠争议</span><span aria-hidden="true">登记冲突，请负责人拍板</span></button>
+          </div>
+        </form>
+        <p class="panel-status" id="effectivity-conflict-status" role="status"></p>
+        <form class="wiki-access-form" id="effectivity-conflict-query-form" autocomplete="off">
+          <label for="effectivity-conflict-document"><span class="sr-only">按文档查询争议记录</span><span aria-hidden="true">输入文件编号，查这份制度有没有未解决冲突</span></label>
+          <div class="access-field">
+            <input id="effectivity-conflict-document" name="document_id" maxlength="36" spellcheck="false" placeholder="文档 UUID" required>
+            <button id="effectivity-conflict-load" class="quiet-button" type="submit"><span class="sr-only">加载争议清单</span><span aria-hidden="true">查冲突列表</span></button>
+          </div>
+        </form>
+        <ul id="effectivity-conflict-list"></ul>
+        <form class="wiki-access-form" id="effectivity-resolve-form" autocomplete="off">
+          <label for="effectivity-resolve-id"><span class="sr-only">待裁定争议编号</span><span aria-hidden="true">要处理哪条冲突（填冲突单号）</span></label>
+          <input id="effectivity-resolve-id" name="conflict_id" maxlength="36" spellcheck="false" placeholder="争议 UUID" required>
+          <label for="effectivity-resolve-outcome"><span class="sr-only">制度负责人处理结论</span><span aria-hidden="true">负责人拍板结果</span></label>
+          <select id="effectivity-resolve-outcome" name="outcome">
+            <option value="prefer_new_replace">以新版为准，直接替代旧版</option>
+            <option value="keep_existing">继续用现行旧版，暂不换新</option>
+            <option value="narrow_scope">缩小新版适用范围，避免冲突</option>
+            <option value="withdraw_candidate">撤回新版草案，不再上线</option>
+          </select>
+          <label for="effectivity-resolve-basis"><span class="sr-only">裁定依据编号</span><span aria-hidden="true">拍板留档单号（UUID）</span></label>
+          <input id="effectivity-resolve-basis" name="basis_id" maxlength="36" spellcheck="false" placeholder="依据 UUID" required>
+          <label for="effectivity-resolve-linked"><span class="sr-only">关联决定编号（选填）</span><span aria-hidden="true">关联的上线或下线单号（没有就留空）</span></label>
+          <input id="effectivity-resolve-linked" name="linked_decision_id" maxlength="36" spellcheck="false" placeholder="关联生效或停用决定 UUID">
+          <label for="effectivity-resolve-conclusion"><span class="sr-only">裁定结论说明</span><span aria-hidden="true">写明拍板理由，方便后续查证</span></label>
+          <textarea id="effectivity-resolve-conclusion" name="conclusion" maxlength="1000" rows="2" placeholder="由制度负责人填写最终裁定结论" required></textarea>
+          <div class="work-buttons">
+            <button id="effectivity-resolve-submit" class="primary-button" type="submit"><span class="sr-only">提交争议裁定</span><span aria-hidden="true">确认拍板结果</span></button>
+          </div>
+        </form>
+        <p class="panel-status" id="effectivity-resolve-status" role="status"></p>
+      </section>
+    </section>
+      </main>
+  </div>
+</body>
+</html>

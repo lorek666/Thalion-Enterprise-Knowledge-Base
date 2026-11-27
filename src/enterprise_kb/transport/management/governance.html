@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>临时共享与交接 · 知识库管理后台</title>
+  <link rel="stylesheet" href="/employee/portal.css">
+  <link rel="stylesheet" href="/manage/wiki.css">
+  <script src="/manage/governance.js" defer></script>
+  <script type="module" src="/manage/sso.js"></script>
+</head>
+<body class="manage-app">
+  <aside class="ink-sidebar" aria-label="管理入口">
+    <div class="sb-content">
+      <div class="sb-head-row">
+        <a class="sb-brand" href="/manage/catalog">
+          <span class="sb-seal" aria-hidden="true">管</span>
+          <span>
+            <strong class="sb-title">知识库管理后台</strong>
+            <small class="sb-subtitle">管文件 · 设权限 · 看审核</small>
+          </span>
+        </a>
+      </div>
+      <div class="sb-nav-scroll">
+        <div class="sb-section-label">文件与同步</div>
+        <nav class="sb-nav" aria-label="文件与同步">
+          <a class="sb-item" href="/manage/catalog"><span class="sr-only">空间目录</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>全部制度文件</span></a>
+          <a class="sb-item" href="/manage/ingest"><span class="sr-only">资料入库</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>上传新文件</span></a>
+          <a class="sb-item" href="/manage/sources"><span class="sr-only">来源同步</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>OA 自动同步状态</span></a>
+          <a class="sb-item" href="/manage/glossary"><span class="sr-only">业务词典</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>搜索近义词表</span></a>
+        </nav>
+        <div class="sb-section-label">审核与谁能看</div>
+        <nav class="sb-nav" aria-label="审核与谁能看">
+          <a class="sb-item" href="/manage/repairs"><span class="sr-only">校订审核</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>核对识别出的文字</span></a>
+          <a class="sb-item" href="/manage/effectivity"><span class="sr-only">生效审批</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>设生效时间上线</span></a>
+          <a class="sb-item" href="/manage/responsibility"><span class="sr-only">资料负责人</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>指定制度联系人</span></a>
+          <a class="sb-item" href="/manage/readers"><span class="sr-only">读者规则</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>设置谁有权限看</span></a>
+          <a class="sb-item active" href="/manage/governance" aria-current="page"><span class="sr-only">空间治理</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>临时共享与交接</span></a>
+          <a class="sb-item" href="/manage/model-egress"><span class="sr-only">外发规则</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>AI 允许读哪些文件</span></a>
+        </nav>
+        <div class="sb-section-label">省流总结与记录</div>
+        <nav class="sb-nav" aria-label="省流总结与记录">
+          <a class="sb-item" href="/manage/wiki"><span class="sr-only">发布台账</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>核对 AI 省流总结</span></a>
+          <a class="sb-item" href="/manage/feedback"><span class="sr-only">纠错办理</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>员工报错反馈</span></a>
+          <a class="sb-item" href="/manage/runtime"><span class="sr-only">任务积压</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>后台排队进度</span></a>
+          <a class="sb-item" href="/manage/lifecycle"><span class="sr-only">保留处置与审计</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>清理与操作记录</span></a>
+          <a class="sb-item" href="/manage/archives"><span class="sr-only">归档导出</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>打包备份导出</span></a>
+        </nav>
+      </div>
+      <a class="sb-bottom-card" href="/">
+        <span class="sr-only">员工取证</span>
+        <span aria-hidden="true">返回员工查制度页</span>
+        <span class="gold-arrow" aria-hidden="true">↗</span>
+      </a>
+    </div>
+  </aside>
+  <div class="main-shell">
+    <header class="site-bar">
+      <div class="site-bar-inner">
+        <div class="top-tabs">
+          <span class="top-tab active">临时共享与交接</span>
+          <span class="top-subnote">跨部门临时查看组、代管授权与离职调岗交接</span>
+        </div>
+        <div class="session-controls">
+          <span class="seal-pill"><span class="gold-dot" aria-hidden="true"></span>临时共享到期后自动失效，无需手动收回</span>
+        </div>
+      </div>
+    </header>
+    <main class="page-width wiki-management">
+      <header class="ledger-heading">
+        <h1>跨部门临时共享 &amp; 人员工作交接</h1>
+        <p>创建带有效期的跨部门临时查看组、临时委托同事代管后台权限，或在员工调岗离职时一键核查并移交名下待办。</p>
+      </header>
+    <section class="ledger-panel" id="gov-lock" aria-labelledby="gov-access-title">
+      <div class="panel-heading"><h2 id="gov-access-title"><span class="sr-only">空间治理凭据</span><span aria-hidden="true">输入管理员口令</span></h2><span class="local-label"><span></span>验证口令后进入</span></div>
+      <form class="wiki-access-form" id="gov-access" autocomplete="off">
+        <label for="gov-token"><span class="sr-only">管理测试凭据</span><span aria-hidden="true">管理员口令</span></label>
+        <div class="access-field">
+          <input id="gov-token" type="password" maxlength="16384" spellcheck="false" required>
+          <button type="submit" class="primary-button"><span class="sr-only">载入治理凭据</span><span aria-hidden="true">进入共享与交接台</span></button>
+        </div>
+      </form>
+    </section>
+    <section class="ledger-panel" id="gov-workspace" aria-labelledby="gov-title" hidden>
+      <div class="panel-heading">
+        <h2 id="gov-title"><span class="sr-only">当前空间总览</span><span aria-hidden="true">当前制度库状态与整体封存</span></h2>
+        <div class="work-buttons">
+          <button id="gov-refresh" type="button" class="quiet-button"><span class="sr-only">刷新治理总览</span><span aria-hidden="true">刷新列表</span></button>
+          <button id="gov-logout" type="button" class="quiet-button"><span class="sr-only">更换凭据</span><span aria-hidden="true">切换账号 / 退出</span></button>
+        </div>
+      </div>
+      <p id="gov-status" class="panel-status" role="status"></p>
+      <p id="gov-space-meta" class="panel-status repair-meta"></p>
+      <hr>
+      <section aria-labelledby="gov-groups-title">
+        <div class="panel-heading"><h2 id="gov-groups-title"><span class="sr-only">限时共享组</span><span aria-hidden="true">跨部门临时查看组（到期自动收回权限）</span></h2></div>
+        <div id="gov-groups-list"></div>
+        <form class="wiki-access-form" id="gov-group-form" autocomplete="off">
+          <label for="gov-group-source"><span class="sr-only">目标来源编号</span><span aria-hidden="true">把哪个文件库临时共享出去（填文件库编号）</span></label>
+          <input id="gov-group-source" maxlength="36" spellcheck="false" placeholder="来源 UUID" required>
+          <label for="gov-group-name"><span class="sr-only">共享组名称</span><span aria-hidden="true">给这个临时项目组起个名字</span></label>
+          <input id="gov-group-name" maxlength="120" required>
+          <label for="gov-group-purpose"><span class="sr-only">共享用途码</span><span aria-hidden="true">临时共享原因代号（英文小写加下划线）</span></label>
+          <input id="gov-group-purpose" maxlength="64" value="project_review" required>
+          <label for="gov-group-scope"><span class="sr-only">共享范围说明</span><span aria-hidden="true">备注这次共享看哪些资料</span></label>
+          <input id="gov-group-scope" maxlength="240" value="scoped_rows_only" required>
+          <label for="gov-group-start"><span class="sr-only">生效起始（带时区）</span><span aria-hidden="true">共享从何时开始（带时区）</span></label>
+          <input id="gov-group-start" maxlength="40" required>
+          <label for="gov-group-review"><span class="sr-only">复核日期（带时区）</span><span aria-hidden="true">中途提醒复查日期（带时区）</span></label>
+          <input id="gov-group-review" maxlength="40" required>
+          <label for="gov-group-expiry"><span class="sr-only">到期时刻（带时区）</span><span aria-hidden="true">什么时候自动失效收回（带时区）</span></label>
+          <input id="gov-group-expiry" maxlength="40" required>
+          <label for="gov-group-basis"><span class="sr-only">共享依据编号</span><span aria-hidden="true">本次临时共享留档单号（UUID）</span></label>
+          <input id="gov-group-basis" maxlength="36" spellcheck="false" required>
+          <div class="work-buttons"><button type="submit" class="primary-button"><span class="sr-only">创建限时共享组</span><span aria-hidden="true">创建临时查看组</span></button></div>
+        </form>
+        <p id="gov-group-result" class="panel-status" role="status"></p>
+      </section>
+      <hr>
+      <section aria-labelledby="gov-delegations-title">
+        <div class="panel-heading"><h2 id="gov-delegations-title"><span class="sr-only">空间职能委派</span><span aria-hidden="true">临时委托同事代管后台</span></h2></div>
+        <div id="gov-delegations-list"></div>
+        <form class="wiki-access-form" id="gov-delegation-form" autocomplete="off">
+          <label for="gov-del-delegate"><span class="sr-only">代理人员工编号</span><span aria-hidden="true">委托哪位同事临时帮管（填员工编号）</span></label>
+          <input id="gov-del-delegate" maxlength="36" spellcheck="false" placeholder="员工 UUID" required>
+          <fieldset class="repair-mode">
+            <legend>把哪几项管理工作交给对方代管</legend>
+            <label class="repair-option"><input name="del_scope" type="checkbox" value="responsibility_management" checked><span class="sr-only">资料责任管理</span><span aria-hidden="true">指定制度联系人</span></label>
+            <label class="repair-option"><input name="del_scope" type="checkbox" value="shared_group_management"><span class="sr-only">限时共享组管理</span><span aria-hidden="true">管跨部门临时共享组</span></label>
+            <label class="repair-option"><input name="del_scope" type="checkbox" value="feedback_handoff_management"><span class="sr-only">纠错交接授权</span><span aria-hidden="true">转交报错反馈与工作交接</span></label>
+          </fieldset>
+          <label for="gov-del-purpose"><span class="sr-only">委派用途码</span><span aria-hidden="true">代管原因代号（如请假代管 leave_proxy）</span></label>
+          <input id="gov-del-purpose" maxlength="64" value="leave_proxy" required>
+          <label for="gov-del-start"><span class="sr-only">委派起始（带时区）</span><span aria-hidden="true">代管从何时开始（带时区）</span></label>
+          <input id="gov-del-start" maxlength="40" required>
+          <label for="gov-del-review"><span class="sr-only">复核日期（带时区）</span><span aria-hidden="true">中途提醒复查日期（带时区）</span></label>
+          <input id="gov-del-review" maxlength="40" required>
+          <label for="gov-del-expiry"><span class="sr-only">到期时刻（带时区）</span><span aria-hidden="true">什么时候自动结束代管（带时区）</span></label>
+          <input id="gov-del-expiry" maxlength="40" required>
+          <label for="gov-del-basis"><span class="sr-only">委派依据编号</span><span aria-hidden="true">代管留档单号（UUID）</span></label>
+          <input id="gov-del-basis" maxlength="36" spellcheck="false" required>
+          <div class="work-buttons"><button type="submit" class="primary-button"><span class="sr-only">签发空间委派</span><span aria-hidden="true">确认委托对方代管</span></button></div>
+        </form>
+        <p id="gov-delegation-result" class="panel-status" role="status"></p>
+      </section>
+      <hr>
+      <section aria-labelledby="gov-transition-title">
+        <div class="panel-heading"><h2 id="gov-transition-title"><span class="sr-only">调岗/离职核查与交接验收单</span><span aria-hidden="true">员工调岗 / 离职待办一键移交</span></h2></div>
+        <form class="wiki-access-form" id="gov-transition-lookup" autocomplete="off">
+          <label for="gov-trans-employee"><span class="sr-only">待交接员工编号</span><span aria-hidden="true">哪位同事要调岗或离职（填员工编号）</span></label>
+          <div class="access-field">
+            <input id="gov-trans-employee" maxlength="36" spellcheck="false" placeholder="员工 UUID" required>
+            <button type="submit" class="quiet-button"><span class="sr-only">核查交接项</span><span aria-hidden="true">查名下有哪些待办</span></button>
+          </div>
+        </form>
+        <p id="gov-transition-summary" class="panel-status" role="status"></p>
+        <form class="wiki-access-form" id="gov-handoff-form" autocomplete="off">
+          <label for="gov-handoff-kind"><span class="sr-only">交接类型</span><span aria-hidden="true">什么原因交接</span></label>
+          <select id="gov-handoff-kind">
+            <option value="transfer">员工调岗</option>
+            <option value="departure">人员离职</option>
+            <option value="proxy_replacement">代理人替换</option>
+          </select>
+          <label for="gov-handoff-successor"><span class="sr-only">继任/代理人编号（选填）</span><span aria-hidden="true">交给哪位接班同事（只撤权限不转交就留空）</span></label>
+          <input id="gov-handoff-successor" maxlength="36" spellcheck="false" placeholder="留空则仅撤销原责任">
+          <label for="gov-handoff-delegation"><span class="sr-only">关联委派编号（选填）</span><span aria-hidden="true">关联的代管单号（没有就留空）</span></label>
+          <input id="gov-handoff-delegation" maxlength="36" spellcheck="false">
+          <label for="gov-handoff-review"><span class="sr-only">复核日期（带时区）</span><span aria-hidden="true">交接后复查日期（带时区）</span></label>
+          <input id="gov-handoff-review" maxlength="40" required>
+          <label for="gov-handoff-basis"><span class="sr-only">交接依据编号</span><span aria-hidden="true">交接留档单号（UUID）</span></label>
+          <input id="gov-handoff-basis" maxlength="36" spellcheck="false" required>
+          <div class="work-buttons"><button type="submit" class="primary-button"><span class="sr-only">执行交接并签发验收单</span><span aria-hidden="true">完成移交并生成交接单</span></button></div>
+        </form>
+        <p id="gov-handoff-result" class="panel-status" role="status"></p>
+        <div id="gov-receipts-list"></div>
+      </section>
+    </section>
+      </main>
+  </div>
+</body>
+</html>

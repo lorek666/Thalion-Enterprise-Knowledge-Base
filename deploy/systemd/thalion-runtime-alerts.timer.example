@@ -1,0 +1,14 @@
+# Thalion 后台任务积压巡检定时器模板（每 5 分钟执行一次）
+
+[Unit]
+Description=Run Thalion Runtime Backlog Alert Poller every 5 minutes
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=5min
+RandomizedDelaySec=15s
+Persistent=true
+Unit=thalion-runtime-alerts.service
+
+[Install]
+WantedBy=timers.target

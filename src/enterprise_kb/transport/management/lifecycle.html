@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>清理与操作记录 · 知识库管理后台</title>
+  <link rel="stylesheet" href="/employee/portal.css">
+  <link rel="stylesheet" href="/manage/wiki.css">
+  <script src="/manage/lifecycle.js" defer></script>
+  <script type="module" src="/manage/sso.js"></script>
+</head>
+<body class="manage-app">
+  <aside class="ink-sidebar" aria-label="管理入口">
+    <div class="sb-content">
+      <div class="sb-head-row">
+        <a class="sb-brand" href="/manage/catalog">
+          <span class="sb-seal" aria-hidden="true">审</span>
+          <span>
+            <strong class="sb-title">知识库管理后台</strong>
+            <small class="sb-subtitle">管文件 · 设权限 · 看审核</small>
+          </span>
+        </a>
+      </div>
+      <div class="sb-nav-scroll">
+        <div class="sb-section-label">文件与同步</div>
+        <nav class="sb-nav" aria-label="文件与同步">
+          <a class="sb-item" href="/manage/catalog"><span class="sr-only">空间目录</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>全部制度文件</span></a>
+          <a class="sb-item" href="/manage/ingest"><span class="sr-only">资料入库</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>上传新文件</span></a>
+          <a class="sb-item" href="/manage/sources"><span class="sr-only">来源同步</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>OA 自动同步状态</span></a>
+          <a class="sb-item" href="/manage/glossary"><span class="sr-only">业务词典</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>搜索近义词表</span></a>
+        </nav>
+        <div class="sb-section-label">审核与谁能看</div>
+        <nav class="sb-nav" aria-label="审核与谁能看">
+          <a class="sb-item" href="/manage/repairs"><span class="sr-only">校订审核</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>核对识别出的文字</span></a>
+          <a class="sb-item" href="/manage/effectivity"><span class="sr-only">生效审批</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>设生效时间上线</span></a>
+          <a class="sb-item" href="/manage/responsibility"><span class="sr-only">资料负责人</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>指定制度联系人</span></a>
+          <a class="sb-item" href="/manage/readers"><span class="sr-only">读者规则</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>设置谁有权限看</span></a>
+          <a class="sb-item" href="/manage/governance"><span class="sr-only">空间治理</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>临时共享与交接</span></a>
+          <a class="sb-item" href="/manage/model-egress"><span class="sr-only">外发规则</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>AI 允许读哪些文件</span></a>
+        </nav>
+        <div class="sb-section-label">省流总结与记录</div>
+        <nav class="sb-nav" aria-label="省流总结与记录">
+          <a class="sb-item" href="/manage/wiki"><span class="sr-only">发布台账</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>核对 AI 省流总结</span></a>
+          <a class="sb-item" href="/manage/feedback"><span class="sr-only">纠错办理</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>员工报错反馈</span></a>
+          <a class="sb-item" href="/manage/runtime"><span class="sr-only">任务积压</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>后台排队进度</span></a>
+          <a class="sb-item active" href="/manage/lifecycle" aria-current="page"><span class="sr-only">保留处置与审计</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>清理与操作记录</span></a>
+          <a class="sb-item" href="/manage/archives"><span class="sr-only">归档导出</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>打包备份导出</span></a>
+        </nav>
+      </div>
+      <a class="sb-bottom-card" href="/">
+        <span class="sr-only">员工取证</span>
+        <span aria-hidden="true">返回员工查制度页</span>
+        <span class="gold-arrow" aria-hidden="true">↗</span>
+      </a>
+    </div>
+  </aside>
+  <div class="main-shell">
+    <header class="site-bar">
+      <div class="site-bar-inner">
+        <div class="top-tabs">
+          <span class="top-tab active">清理与操作记录</span>
+          <span class="top-subnote">旧制度到期清理、重要文件冻结保护与操作记录核查</span>
+        </div>
+        <div class="session-controls">
+          <span class="seal-pill"><span class="gold-dot" aria-hidden="true"></span>销毁过期文件需双人独立确认留档</span>
+        </div>
+      </div>
+    </header>
+    <main class="page-width wiki-management">
+      <header class="ledger-heading">
+        <h1>过期文件清理 &amp; 后台操作记录查询</h1>
+        <p>设置旧制度保存期限、开启重要资料冻结保护、双人确认清理过期文件，或抽查后台操作记录（提示：管理与审计权限不授予原文读权）。</p>
+      </header>
+    <section class="ledger-panel" id="lifecycle-lock" aria-labelledby="lifecycle-access-title">
+      <div class="panel-heading"><h2 id="lifecycle-access-title"><span class="sr-only">管理与审计凭据</span><span aria-hidden="true">输入管理员或审计员口令</span></h2><span class="local-label"><span></span>验证口令后进入</span></div>
+      <form class="wiki-access-form" id="lifecycle-access" autocomplete="off">
+        <label for="lifecycle-token"><span class="sr-only">管理测试凭据</span><span aria-hidden="true">管理员 / 审计员口令</span></label>
+        <div class="access-field">
+          <input type="password" id="lifecycle-token" autocomplete="off" spellcheck="false" maxlength="16384" required>
+          <button type="submit" class="primary-button"><span class="sr-only">载入管理凭据</span><span aria-hidden="true">进入清理与记录台</span></button>
+        </div>
+        <p class="status-message" id="lifecycle-lock-message" role="status"></p>
+      </form>
+    </section>
+    <section class="ledger-panel" id="lifecycle-workspace" aria-labelledby="lifecycle-workspace-title" hidden>
+      <div class="panel-heading">
+        <h2 id="lifecycle-workspace-title"><span class="sr-only">生命周期工作台</span><span aria-hidden="true">文件保存期限、冻结保护与操作记录</span></h2>
+        <button id="lifecycle-logout" class="quiet-button" type="button"><span class="sr-only">更换凭据</span><span aria-hidden="true">切换账号 / 退出</span></button>
+      </div>
+      <section class="ledger-panel work-detail" aria-labelledby="lifecycle-retention-title">
+        <div class="panel-heading"><h3 id="lifecycle-retention-title"><span class="sr-only">保留策略与保全决定</span><span aria-hidden="true">设置文件保存年限 &amp; 重要资料冻结保护</span></h3></div>
+        <form class="wiki-access-form" id="lifecycle-retention-form" autocomplete="off">
+          <label for="lifecycle-retention-source"><span class="sr-only">策略来源编号</span><span aria-hidden="true">给哪个文件库定保存期限（填文件库编号）</span></label>
+          <input id="lifecycle-retention-source" name="source_id" maxlength="36" spellcheck="false" placeholder="来源 UUID" required>
+          <label for="lifecycle-retention-expected"><span class="sr-only">预期策略代次</span><span aria-hidden="true">当前版本号（第一次设填 0）</span></label>
+          <input type="number" id="lifecycle-retention-expected" name="expected_revision" min="0" value="0" required>
+          <label for="lifecycle-retention-days"><span class="sr-only">保存天数</span><span aria-hidden="true">文件最少保留几天</span></label>
+          <input type="number" id="lifecycle-retention-days" name="keep_days" min="0" value="365" required>
+          <label for="lifecycle-retention-action"><span class="sr-only">到期处置方式</span><span aria-hidden="true">到期以后怎么处理</span></label>
+          <select id="lifecycle-retention-action" name="action">
+            <option value="archive">归档（archive）</option>
+            <option value="destroy">销毁（destroy）</option>
+          </select>
+          <label for="lifecycle-retention-basis"><span class="sr-only">策略审批依据编号</span><span aria-hidden="true">审批留档单号（UUID）</span></label>
+          <input id="lifecycle-retention-basis" name="basis_id" maxlength="36" spellcheck="false" placeholder="依据 UUID" required>
+          <div class="work-buttons">
+            <button id="lifecycle-retention-submit" class="primary-button" type="submit"><span class="sr-only">登记保留策略</span><span aria-hidden="true">保存年限规则</span></button>
+          </div>
+        </form>
+        <p class="panel-status" id="lifecycle-retention-status" role="status"></p>
+        <form class="wiki-access-form" id="lifecycle-hold-form" autocomplete="off">
+          <label for="lifecycle-hold-version"><span class="sr-only">保全目标版本编号</span><span aria-hidden="true">要冻结防删哪份文件（填版本编号）</span></label>
+          <input id="lifecycle-hold-version" name="version_id" maxlength="36" spellcheck="false" placeholder="版本 UUID" required>
+          <label for="lifecycle-hold-action"><span class="sr-only">保全动作</span><span aria-hidden="true">冻结还是解冻</span></label>
+          <select id="lifecycle-hold-action" name="action">
+            <option value="establish">冻结保护（禁止清理删除）</option>
+            <option value="release">解除冻结保护</option>
+          </select>
+          <label for="lifecycle-hold-generation"><span class="sr-only">预期保全代次</span><span aria-hidden="true">当前冻结次数（第一次填 0）</span></label>
+          <input type="number" id="lifecycle-hold-generation" name="expected_generation" min="0" value="0" required>
+          <label for="lifecycle-hold-basis"><span class="sr-only">保全依据编号</span><span aria-hidden="true">冻结 / 解冻留档单号（UUID）</span></label>
+          <input id="lifecycle-hold-basis" name="basis_id" maxlength="36" spellcheck="false" placeholder="依据 UUID" required>
+          <div class="work-buttons">
+            <button id="lifecycle-hold-submit" class="primary-button" type="submit"><span class="sr-only">提交保全决定</span><span aria-hidden="true">确认冻结 / 解冻</span></button>
+          </div>
+        </form>
+        <p class="panel-status" id="lifecycle-hold-status" role="status"></p>
+      </section>
+      <section class="ledger-panel work-detail" aria-labelledby="lifecycle-disposition-title">
+        <div class="panel-heading"><h3 id="lifecycle-disposition-title"><span class="sr-only">处置清点预览、提交、审批与删除墓碑</span><span aria-hidden="true">到期文件清理（先预览清单，再换人确认销毁）</span></h3></div>
+        <form class="wiki-access-form" id="lifecycle-plan-form" autocomplete="off">
+          <label for="lifecycle-plan-version"><span class="sr-only">处置目标版本编号</span><span aria-hidden="true">要清理哪份到期文件（填版本编号）</span></label>
+          <input id="lifecycle-plan-version" name="version_id" maxlength="36" spellcheck="false" placeholder="版本 UUID" required>
+          <label for="lifecycle-plan-action"><span class="sr-only">处置动作</span><span aria-hidden="true">打算归档还是彻底销毁</span></label>
+          <select id="lifecycle-plan-action" name="action">
+            <option value="archive">归档（archive）</option>
+            <option value="destroy">销毁（destroy）</option>
+          </select>
+          <label for="lifecycle-plan-reason"><span class="sr-only">处置原因</span><span aria-hidden="true">清理原因</span></label>
+          <select id="lifecycle-plan-reason" name="reason">
+            <option value="retention_expiry">保留期满（retention_expiry）</option>
+            <option value="withdrawal">制度撤回（withdrawal）</option>
+          </select>
+          <div class="work-buttons">
+            <button id="lifecycle-plan-btn" class="quiet-button" type="submit"><span class="sr-only">预览处置清点</span><span aria-hidden="true">先清点有哪些备份副本</span></button>
+            <button id="lifecycle-submit-case-btn" class="primary-button" type="button"><span class="sr-only">按当前快照提交处置申请</span><span aria-hidden="true">按清点清单提交清理申请</span></button>
+          </div>
+        </form>
+        <p class="panel-status" id="lifecycle-plan-status" role="status"></p>
+        <p class="panel-status" id="lifecycle-plan-summary"></p>
+        <ul id="lifecycle-plan-copies"></ul>
+        <form class="wiki-access-form" id="lifecycle-case-form" autocomplete="off">
+          <label for="lifecycle-case-id"><span class="sr-only">处置案件编号</span><span aria-hidden="true">清理申请单号</span></label>
+          <input id="lifecycle-case-id" name="case_id" maxlength="36" spellcheck="false" placeholder="处置案件 UUID" required>
+          <label for="lifecycle-case-snapshot"><span class="sr-only">清点快照摘要</span><span aria-hidden="true">清点校验码（自动填入防篡改）</span></label>
+          <input id="lifecycle-case-snapshot" name="inventory_snapshot" maxlength="64" spellcheck="false" placeholder="64 位小写 SHA-256" required>
+          <label for="lifecycle-case-basis"><span class="sr-only">复核/审批依据编号</span><span aria-hidden="true">审批留档单号（UUID）</span></label>
+          <input id="lifecycle-case-basis" name="basis_id" maxlength="36" spellcheck="false" placeholder="依据 UUID">
+          <label for="lifecycle-case-ttl"><span class="sr-only">批准有效分钟数（1-14）</span><span aria-hidden="true">批准后几分钟内必须执行完（1~14 分钟）</span></label>
+          <input type="number" id="lifecycle-case-ttl" name="ttl_minutes" min="1" max="14" value="5">
+          <label for="lifecycle-case-approval-id"><span class="sr-only">已批准决定编号（登记墓碑用）</span><span aria-hidden="true">已批复单号（标记彻底禁恢复时填写）</span></label>
+          <input id="lifecycle-case-approval-id" name="approval_id" maxlength="36" spellcheck="false" placeholder="批准决定 UUID">
+          <div class="work-buttons">
+            <button id="lifecycle-case-approve-btn" class="primary-button" type="button"><span class="sr-only">独立批准处置</span><span aria-hidden="true">换人核对无误，批准清理</span></button>
+            <button id="lifecycle-case-reject-btn" class="quiet-button" type="button"><span class="sr-only">驳回处置申请</span><span aria-hidden="true">打回不清理</span></button>
+            <button id="lifecycle-case-verify-btn" class="quiet-button" type="button"><span class="sr-only">核验原件摘要</span><span aria-hidden="true">核对原文件指纹</span></button>
+            <button id="lifecycle-case-tombstone-btn" class="quiet-button" type="button"><span class="sr-only">登记删除墓碑</span><span aria-hidden="true">打上彻底禁恢复标记</span></button>
+          </div>
+        </form>
+        <p class="panel-status" id="lifecycle-case-status" role="status"></p>
+      </section>
+      <section class="ledger-panel work-detail" aria-labelledby="lifecycle-audit-title">
+        <div class="panel-heading"><h3 id="lifecycle-audit-title"><span class="sr-only">按来源审计复核</span><span aria-hidden="true">查询后台与搜索操作记录</span></h3></div>
+        <form class="wiki-access-form" id="lifecycle-audit-form" autocomplete="off">
+          <label for="lifecycle-audit-source"><span class="sr-only">审计目标来源编号</span><span aria-hidden="true">查哪个文件库的操作记录（填文件库编号）</span></label>
+          <input id="lifecycle-audit-source" name="source_id" maxlength="36" spellcheck="false" placeholder="来源 UUID" required>
+          <label for="lifecycle-audit-request"><span class="sr-only">按请求编号过滤（选填）</span><span aria-hidden="true">只看某一次具体操作（贴请求号，不填查全部）</span></label>
+          <input id="lifecycle-audit-request" name="request_id" maxlength="36" spellcheck="false" placeholder="请求 UUID">
+          <div class="work-buttons">
+            <button id="lifecycle-audit-load" class="primary-button" type="submit"><span class="sr-only">查询来源审计</span><span aria-hidden="true">查操作日志</span></button>
+            <button id="lifecycle-audit-more" class="quiet-button" type="button" hidden><span class="sr-only">加载更早记录</span><span aria-hidden="true">看更早的记录</span></button>
+          </div>
+        </form>
+        <p class="panel-status" id="lifecycle-audit-status" role="status"></p>
+        <ul id="lifecycle-audit-list"></ul>
+      </section>
+    </section>
+      </main>
+  </div>
+</body>
+</html>

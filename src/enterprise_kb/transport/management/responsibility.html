@@ -1,0 +1,122 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>指定制度联系人 · 知识库管理后台</title>
+  <link rel="stylesheet" href="/employee/portal.css">
+  <link rel="stylesheet" href="/manage/wiki.css">
+  <script src="/manage/responsibility.js" defer></script>
+  <script type="module" src="/manage/sso.js"></script>
+</head>
+<body class="manage-app">
+  <aside class="ink-sidebar" aria-label="管理入口">
+    <div class="sb-content">
+      <div class="sb-head-row">
+        <a class="sb-brand" href="/manage/catalog">
+          <span class="sb-seal" aria-hidden="true">责</span>
+          <span>
+            <strong class="sb-title">知识库管理后台</strong>
+            <small class="sb-subtitle">管文件 · 设权限 · 看审核</small>
+          </span>
+        </a>
+      </div>
+      <div class="sb-nav-scroll">
+        <div class="sb-section-label">文件与同步</div>
+        <nav class="sb-nav" aria-label="文件与同步">
+          <a class="sb-item" href="/manage/catalog"><span class="sr-only">空间目录</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>全部制度文件</span></a>
+          <a class="sb-item" href="/manage/ingest"><span class="sr-only">资料入库</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>上传新文件</span></a>
+          <a class="sb-item" href="/manage/sources"><span class="sr-only">来源同步</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>OA 自动同步状态</span></a>
+          <a class="sb-item" href="/manage/glossary"><span class="sr-only">业务词典</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>搜索近义词表</span></a>
+        </nav>
+        <div class="sb-section-label">审核与谁能看</div>
+        <nav class="sb-nav" aria-label="审核与谁能看">
+          <a class="sb-item" href="/manage/repairs"><span class="sr-only">校订审核</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>核对识别出的文字</span></a>
+          <a class="sb-item" href="/manage/effectivity"><span class="sr-only">生效审批</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>设生效时间上线</span></a>
+          <a class="sb-item active" href="/manage/responsibility" aria-current="page"><span class="sr-only">资料负责人</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>指定制度联系人</span></a>
+          <a class="sb-item" href="/manage/readers"><span class="sr-only">读者规则</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>设置谁有权限看</span></a>
+          <a class="sb-item" href="/manage/governance"><span class="sr-only">空间治理</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>临时共享与交接</span></a>
+          <a class="sb-item" href="/manage/model-egress"><span class="sr-only">外发规则</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>AI 允许读哪些文件</span></a>
+        </nav>
+        <div class="sb-section-label">省流总结与记录</div>
+        <nav class="sb-nav" aria-label="省流总结与记录">
+          <a class="sb-item" href="/manage/wiki"><span class="sr-only">发布台账</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>核对 AI 省流总结</span></a>
+          <a class="sb-item" href="/manage/feedback"><span class="sr-only">纠错办理</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>员工报错反馈</span></a>
+          <a class="sb-item" href="/manage/runtime"><span class="sr-only">任务积压</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>后台排队进度</span></a>
+          <a class="sb-item" href="/manage/lifecycle"><span class="sr-only">保留处置与审计</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>清理与操作记录</span></a>
+          <a class="sb-item" href="/manage/archives"><span class="sr-only">归档导出</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>打包备份导出</span></a>
+        </nav>
+      </div>
+      <a class="sb-bottom-card" href="/">
+        <span class="sr-only">员工取证</span>
+        <span aria-hidden="true">返回员工查制度页</span>
+        <span class="gold-arrow" aria-hidden="true">↗</span>
+      </a>
+    </div>
+  </aside>
+  <div class="main-shell">
+    <header class="site-bar">
+      <div class="site-bar-inner">
+        <div class="top-tabs">
+          <span class="top-tab active">指定制度联系人</span>
+          <span class="top-subnote">明确每份制度归哪位同事负责维护与解答</span>
+        </div>
+        <div class="session-controls">
+          <span class="seal-pill"><span class="gold-dot" aria-hidden="true"></span>新版本会自动沿用同一份制度的联系人</span>
+        </div>
+      </div>
+    </header>
+    <main class="page-width wiki-management">
+      <header class="ledger-heading">
+        <h1>指定每份制度的业务负责人</h1>
+        <p>登记每份制度由哪位同事负责维护；以后员工对这份规定提疑问或报错时，便于快速找到对应负责人跟进。</p>
+      </header>
+    <section class="ledger-panel" id="responsibility-lock" aria-labelledby="responsibility-access-title">
+      <div class="panel-heading"><h2 id="responsibility-access-title"><span class="sr-only">来源负责人凭据</span><span aria-hidden="true">输入管理员口令</span></h2><span class="local-label"><span></span>验证口令后进入</span></div>
+      <form class="wiki-access-form" id="responsibility-access" autocomplete="off">
+        <label for="responsibility-token"><span class="sr-only">管理测试凭据</span><span aria-hidden="true">管理员口令</span></label>
+        <div class="access-field">
+          <input id="responsibility-token" type="password" maxlength="16384" spellcheck="false" required>
+          <button type="submit" class="primary-button"><span class="sr-only">载入管理凭据</span><span aria-hidden="true">进入联系人设置</span></button>
+        </div>
+      </form>
+    </section>
+    <section class="ledger-panel" id="responsibility-workspace" aria-labelledby="responsibility-title" hidden>
+      <div class="panel-heading">
+        <h2 id="responsibility-title"><span class="sr-only">读取资料当前负责人</span><span aria-hidden="true">输入文件编号查看当前联系人</span></h2>
+        <button id="responsibility-logout" type="button" class="quiet-button"><span class="sr-only">更换凭据</span><span aria-hidden="true">切换账号 / 退出</span></button>
+      </div>
+      <form class="wiki-access-form" id="responsibility-lookup" autocomplete="off">
+        <label for="responsibility-document"><span class="sr-only">资料编号</span><span aria-hidden="true">要查哪份制度文件（填文件编号，不是版本号）</span></label>
+        <div class="access-field">
+          <input id="responsibility-document" maxlength="36" spellcheck="false" placeholder="资料 UUID，不是版本 UUID" required>
+          <button class="quiet-button" type="submit"><span class="sr-only">读取当前负责人</span><span aria-hidden="true">查当前负责人</span></button>
+        </div>
+      </form>
+      <p id="responsibility-status" class="panel-status" role="status"></p>
+      <p id="responsibility-receipt" class="panel-status repair-meta"></p>
+      <section id="responsibility-details" class="work-detail" aria-labelledby="responsibility-details-title" hidden>
+        <div class="panel-heading"><h2 id="responsibility-details-title"><span class="sr-only">责任决定</span><span aria-hidden="true">指定或更换这份制度的负责人</span></h2></div>
+        <p class="panel-status" id="responsibility-state"></p>
+        <p class="panel-status" id="responsibility-subject"></p>
+        <p class="panel-status" id="responsibility-expiry"></p>
+        <form class="wiki-access-form" id="responsibility-editor" autocomplete="off">
+          <label for="responsibility-action"><span class="sr-only">办理事项</span><span aria-hidden="true">要怎么调整负责人</span></label>
+          <select id="responsibility-action"><option value="assign">指定或更换制度联系人</option><option value="revoke">取消当前联系人</option></select>
+          <div id="responsibility-assignment">
+            <label for="responsibility-employee"><span class="sr-only">受任员工编号</span><span aria-hidden="true">指定哪位同事负责（填员工编号）</span></label>
+            <input id="responsibility-employee" maxlength="36" spellcheck="false" placeholder="员工 UUID" required>
+            <label for="responsibility-until"><span class="sr-only">任期截止（选填）</span><span aria-hidden="true">负责到什么时候（长期负责就留空）</span></label>
+            <input id="responsibility-until" maxlength="40" spellcheck="false" placeholder="带时区的日期与时刻">
+            <p class="input-hint">时间格式示例：2026-12-01T18:00:00+08:00；不填则一直由这位同事负责，直到后续手动更换。</p>
+          </div>
+          <label for="responsibility-basis"><span class="sr-only">登记依据编号</span><span aria-hidden="true">本次变更留档单号（UUID）</span></label>
+          <input id="responsibility-basis" maxlength="36" spellcheck="false" placeholder="依据 UUID" required>
+          <div class="work-buttons"><button class="primary-button" type="submit"><span class="sr-only">保存责任决定</span><span aria-hidden="true">保存制度联系人</span></button></div>
+        </form>
+      </section>
+    </section>
+      </main>
+  </div>
+</body>
+</html>

@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>公司制度查询 | Thalion</title>
+  <link rel="stylesheet" href="/employee/portal.css">
+  <script type="module" src="/employee/portal.js"></script>
+</head>
+<body class="employee-app">
+  <aside class="ink-sidebar" aria-label="功能导览">
+    <div class="sb-content">
+      <a class="sb-brand" href="/">
+        <span class="sb-seal" aria-hidden="true">查</span>
+        <span>
+          <strong class="sb-title">公司制度查询</strong>
+          <small class="sb-subtitle">员工日常办事指南</small>
+        </span>
+      </a>
+
+      <div class="sb-section-label">常用功能</div>
+      <nav class="sb-nav" aria-label="页面快捷定位">
+        <button type="button" class="sb-item active" data-nav-target="search">
+          <span class="sb-item-left"><span class="sb-dot" aria-hidden="true"></span>搜公司制度</span>
+          <span class="sb-badge">秒查</span>
+        </button>
+        <button type="button" class="sb-item" data-nav-target="wiki">
+          <span class="sb-item-left"><span class="sb-dot" aria-hidden="true"></span>常见问题省流总结</span>
+        </button>
+        <button type="button" class="sb-item" data-nav-target="direct-ref">
+          <span class="sb-item-left"><span class="sb-dot" aria-hidden="true"></span>粘贴编号看原文</span>
+        </button>
+        <button type="button" class="sb-item" data-nav-target="feedback">
+          <span class="sb-item-left"><span class="sb-dot" aria-hidden="true"></span>我反馈过的问题</span>
+        </button>
+      </nav>
+
+      <a class="sb-bottom-card" href="/manage/catalog">
+        <span>进入管理员后台</span>
+        <span class="gold-arrow" aria-hidden="true">↗</span>
+      </a>
+    </div>
+  </aside>
+
+  <div class="main-shell">
+    <header class="site-bar">
+      <div class="site-bar-inner">
+        <div class="top-tabs">
+          <span class="top-tab active">搜制度</span>
+          <span class="top-subnote">随时核对制度原文 · 不怕看错旧版本</span>
+        </div>
+        <div class="session-controls">
+          <span class="seal-pill"><span class="gold-dot" aria-hidden="true"></span>只显示你有权限看的制度</span>
+          <div id="session-actions" class="action-group" hidden>
+            <button id="switch-employee" type="button" class="quiet-button" aria-label="更换凭据">换个账号</button>
+            <button id="logout" type="button" class="quiet-button" aria-label="退出">退出登录</button>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <main class="page-width">
+      <section id="locked-panel" class="access-panel" aria-labelledby="access-title">
+        <div class="access-note">
+          <div>
+            <span class="access-status">先验证身份</span>
+            <h2 class="serif-heading">公司制度随手查</h2>
+          </div>
+          <p>出差住宿、机票火车票、报销发票、考勤休假等规定都能直接用大白话搜。每次打开原文都会实时确认你的查看权限，离开页面自动清空记录。</p>
+        </div>
+        <div class="access-entry">
+          <h2 id="access-title" class="serif-heading" aria-label="载入测试凭据">登录开始查制度</h2>
+          <p>正式环境支持公司账号一键登录；本机体验时在下方粘贴测试口令即可进入。</p>
+          <div id="oidc-sso-box" class="oidc-sso-box" hidden>
+            <button id="oidc-login-button" class="primary-button btn-ink" type="button">用公司账号一键登录（SSO）</button>
+            <p class="input-hint">跳转公司统一登录页验证身份，完成后自动进入查制度页面。</p>
+          </div>
+          <form id="access-form" autocomplete="off">
+            <label for="access-token"><span aria-hidden="true">员工登录口令</span></label>
+            <div class="access-field">
+              <input id="access-token" aria-label="本机测试凭据" type="password" autocomplete="off" maxlength="16384" spellcheck="false" placeholder="粘贴你的登录口令…" required>
+              <button class="primary-button btn-ink" type="submit" aria-label="载入凭据">进入查询</button>
+            </div>
+          </form>
+          <p id="access-message" class="status-message" role="status" hidden></p>
+        </div>
+      </section>
+
+      <section id="workspace" aria-label="员工取证工作台" hidden>
+        <section class="mist-search-card" aria-labelledby="page-title">
+          <div class="search-desk-inner">
+            <div class="desk-greeting-row">
+              <div class="desk-title-wrap">
+                <h1 id="page-title" class="desk-title serif-heading">想查什么规定，直接用大白话搜</h1>
+                <p class="desk-sub">每条答案都附带公司正式文件原文，不怕看错旧版本</p>
+              </div>
+            </div>
+
+            <form id="search-form" class="search-form" autocomplete="off">
+              <div class="search-bar-grid">
+                <div class="xuan-query-field">
+                  <label for="query" class="field-caption"><span aria-hidden="true">你想查什么？</span></label>
+                  <div class="xuan-input-wrap">
+                    <span class="search-icon-glyph" aria-hidden="true">⌕</span>
+                    <input id="query" aria-label="关键词或问题" type="search" maxlength="1000" autocomplete="off" spellcheck="false" placeholder="例如：去上海出差住酒店能报多少钱？高铁能坐一等座吗？" required>
+                    <button id="load-search-suggestions" class="hint-chip-button" type="button" aria-label="查找标题建议">猜你想找 ▾</button>
+                  </div>
+                </div>
+                <div class="meta-field-box">
+                  <label for="business-day" class="field-caption"><span aria-hidden="true">按哪天规定算（不填按今天）</span></label>
+                  <input id="business-day" aria-label="业务日期" type="date" aria-describedby="date-hint">
+                  <span id="date-hint" class="sr-only">留空默认按今天规定计算</span>
+                </div>
+                <div class="meta-field-box">
+                  <label for="passage-count" class="field-caption"><span aria-hidden="true">最多显示几条</span></label>
+                  <input id="passage-count" aria-label="原文条数" type="number" min="1" max="20" step="1" value="5" required>
+                </div>
+                <button class="primary-button btn-ink search-submit-btn" type="submit" aria-label="查找依据">搜索</button>
+              </div>
+
+              <div class="search-suggestions">
+                <p id="search-suggestion-status" class="input-hint" role="status"></p>
+                <ul id="search-suggestion-list" aria-label="标题建议" hidden></ul>
+              </div>
+
+              <div class="search-options-strip">
+                <div class="search-toggle-row">
+                  <span class="synonym-note">支持自动识别日常近义词：<span class="syn-pill">出差 / 差旅</span><span class="syn-pill">住酒店 / 住宿费标准</span></span>
+                  <label class="search-wiki-option">
+                    <input id="include-wiki" type="checkbox" aria-label="附带已审核 Wiki 陈述">
+                    <span>同时展示人工核对过的省流总结</span>
+                  </label>
+                </div>
+
+                <div class="filter-inline-grid">
+                  <div class="search-department">
+                    <label for="department-code" class="field-caption"><span aria-hidden="true">只看某个部门的规定（选填）</span></label>
+                    <div class="inline-filter-controls">
+                      <input id="department-code" aria-label="部门代码" type="text" maxlength="64" autocomplete="off" spellcheck="false" placeholder="如 finance（不填默认搜全部部门）">
+                      <button id="load-department-options" class="quiet-button" type="button"><span class="sr-only">查看可筛选部门</span><span aria-hidden="true">选部门 ▾</span></button>
+                    </div>
+                    <div id="department-options-panel" hidden>
+                      <label for="department-options" class="field-caption"><span aria-hidden="true">选择部门（仅统计你有权限看的制度）</span></label>
+                      <select id="department-options" aria-label="可筛选部门（仅统计当前有权资料）" autocomplete="off"></select>
+                    </div>
+                    <p id="department-options-status" class="input-hint" role="status"></p>
+                  </div>
+
+                  <div class="search-source">
+                    <label for="source-ref" class="field-caption"><span aria-hidden="true">只看某个文件库（选填）</span></label>
+                    <div class="inline-filter-controls">
+                      <input id="source-ref" aria-label="来源编号" type="text" maxlength="36" autocomplete="off" spellcheck="false" placeholder="不填默认搜全部文件库">
+                      <button id="load-source-options" class="quiet-button" type="button"><span class="sr-only">查看可筛选来源</span><span aria-hidden="true">选文件库 ▾</span></button>
+                    </div>
+                    <div id="source-options-panel" hidden>
+                      <label for="source-options" class="field-caption"><span aria-hidden="true">选择文件库</span></label>
+                      <select id="source-options" aria-label="可筛选来源" autocomplete="off"></select>
+                    </div>
+                    <p id="source-options-status" class="input-hint" role="status"></p>
+                  </div>
+                </div>
+              </div>
+            </form>
+          </div>
+        </section>
+
+        <div class="evidence-desk">
+          <div class="results-column">
+            <section id="wiki-results" class="employee-wiki" hidden aria-label="已审核 Wiki 陈述">
+              <div class="wiki-head">
+                <h3 id="employee-wiki-title" class="wiki-seal-tag">✦ 人工核对过的省流总结</h3>
+                <span class="wiki-valid-note">点每句后面的小标签，右边直接对照原文</span>
+              </div>
+              <div id="wiki-result-list"></div>
+            </section>
+
+            <section class="results-panel" aria-label="检索结果">
+              <div class="panel-heading">
+                <div>
+                  <h2 id="result-title">对应的公司正式制度原文</h2>
+                  <span class="panel-subhint">点左边任意一条，右边直接展开原文核对</span>
+                </div>
+                <p id="result-day" class="result-day" hidden></p>
+              </div>
+              <p id="result-status" class="panel-status" role="status">输入关键词开始查找。</p>
+              <p id="result-request" class="panel-status result-request" hidden>本次查询编号 <code></code></p>
+              <div class="facets-row">
+                <section id="source-facets" class="source-facets" hidden aria-label="匹配资料按来源">
+                  <h3 id="source-facets-title">来自哪些文件库</h3>
+                  <ul id="source-facet-list"></ul>
+                </section>
+                <section id="department-facets" class="source-facets" hidden aria-label="匹配资料按部门">
+                  <h3 id="department-facets-title">属于哪些部门</h3>
+                  <ul id="department-facet-list"></ul>
+                </section>
+              </div>
+              <ol id="results" class="result-list" aria-busy="false"></ol>
+              <div class="report-gap">
+                <button id="report-gap" type="button" class="quiet-button btn-gold-soft" aria-label="反馈缺少依据" hidden>没搜到你要找的规定？点我告诉管理员补充</button>
+              </div>
+            </section>
+          </div>
+
+          <section class="reference-panel" aria-label="原文核对">
+            <div class="reader-top-seal">
+              <div class="reader-seal-left">
+                <span class="gold-dot" aria-hidden="true"></span>
+                <h2 id="reference-title">制度文件原文（已确认是当前最新版）</h2>
+              </div>
+              <span class="verify-label">每次点开实时核对权限</span>
+            </div>
+            <div class="reader-body">
+              <p id="reference-status" class="panel-status" role="status">选择一条依据，查看获准摘录和对应位置。</p>
+              <div id="reference-content" aria-busy="false"></div>
+              <details id="direct-reference">
+                <summary>按引用编号打开</summary>
+                <p class="input-hint">同事发来一串规定编号？粘到下面可以直接看对应的制度原文：</p>
+                <form id="reference-form" autocomplete="off">
+                  <label for="reference-id"><span aria-hidden="true">规定编号</span></label>
+                  <div class="access-field">
+                    <input id="reference-id" aria-label="引用编号" type="text" maxlength="36" autocomplete="off" spellcheck="false" placeholder="粘贴 36 位规定编号…" required>
+                    <button type="submit" class="quiet-button" aria-label="打开引用">打开原文</button>
+                  </div>
+                </form>
+              </details>
+            </div>
+          </section>
+        </div>
+
+        <section id="feedback-section" class="feedback-panel" aria-labelledby="feedback-title">
+          <div class="panel-heading">
+            <div>
+              <h2 id="feedback-title">报错反馈 &amp; 处理进度</h2>
+              <span class="panel-subhint">发现制度写错了、过期了，或者想看自己提过的问题处理到哪一步了，都在这里看</span>
+            </div>
+          </div>
+          <div class="feedback-body-wrap">
+            <form id="feedback-form" autocomplete="off" hidden>
+              <p id="feedback-context"></p>
+              <label for="feedback-note"><span aria-hidden="true">哪里不对或没搜到什么？（选填）</span></label>
+              <textarea id="feedback-note" aria-label="补充说明（可选）" rows="3" maxlength="680" aria-describedby="feedback-hint" placeholder="用大白话说清楚问题就行，不用贴制度原文或个人隐私…"></textarea>
+              <p id="feedback-hint" class="input-hint">简单写下问题即可，请勿贴入制度原文、口令或个人信息。</p>
+              <button id="submit-feedback" type="submit" class="primary-button btn-ink" aria-label="提交反馈">提交给管理员核对</button>
+            </form>
+
+            <div class="feedback-grid">
+              <form id="feedback-lookup" autocomplete="off">
+                <label for="feedback-id"><span aria-hidden="true">按反馈单号查处理结果</span></label>
+                <div class="access-field">
+                  <input id="feedback-id" aria-label="反馈编号" type="text" maxlength="36" autocomplete="off" spellcheck="false" placeholder="粘贴提交后生成的单号…" required>
+                  <button type="submit" class="quiet-button" aria-label="查询进度">查处理进度</button>
+                </div>
+                <p id="feedback-status" role="status" class="feedback-status"></p>
+                <p id="feedback-conclusion" class="feedback-conclusion" aria-live="polite" hidden></p>
+              </form>
+
+              <section class="feedback-inbox" aria-label="反馈通知">
+                <div class="feedback-inbox-header">
+                  <h3 id="feedback-inbox-title">我的处理提醒</h3>
+                  <button id="feedback-notices" type="button" class="quiet-button" aria-label="查看我的通知">刷新提醒</button>
+                </div>
+                <p id="feedback-notice-status" class="feedback-status" role="status"></p>
+                <ol id="feedback-notice-list" class="feedback-notice-list" aria-busy="false"></ol>
+                <button id="feedback-notice-next" type="button" class="quiet-button" hidden>看更早的提醒</button>
+              </section>
+            </div>
+          </div>
+        </section>
+      </section>
+      <noscript><p>此页面需要开启 JavaScript 才能安全登录并查看公司制度原文。</p></noscript>
+    </main>
+
+    <footer class="page-width portal-footer">
+      <span>公司制度查询 · 只显示你有权限看的正式文件摘录</span>
+      <span>需要整份文件可在右侧原文栏点“下载整份文件”</span>
+    </footer>
+  </div>
+</body>
+</html>

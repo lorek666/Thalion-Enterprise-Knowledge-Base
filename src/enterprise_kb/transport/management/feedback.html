@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>员工报错反馈 · 知识库管理后台</title>
+  <link rel="stylesheet" href="/employee/portal.css">
+  <link rel="stylesheet" href="/manage/wiki.css">
+  <script src="/manage/feedback.js" defer></script>
+  <script type="module" src="/manage/sso.js"></script>
+</head>
+<body class="manage-app">
+  <aside class="ink-sidebar" aria-label="管理入口">
+    <div class="sb-content">
+      <div class="sb-head-row">
+        <a class="sb-brand" href="/manage/catalog">
+          <span class="sb-seal" aria-hidden="true">答</span>
+          <span>
+            <strong class="sb-title">知识库管理后台</strong>
+            <small class="sb-subtitle">管文件 · 设权限 · 看审核</small>
+          </span>
+        </a>
+      </div>
+      <div class="sb-nav-scroll">
+        <div class="sb-section-label">文件与同步</div>
+        <nav class="sb-nav" aria-label="文件与同步">
+          <a class="sb-item" href="/manage/catalog"><span class="sr-only">空间目录</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>全部制度文件</span></a>
+          <a class="sb-item" href="/manage/ingest"><span class="sr-only">资料入库</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>上传新文件</span></a>
+          <a class="sb-item" href="/manage/sources"><span class="sr-only">来源同步</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>OA 自动同步状态</span></a>
+          <a class="sb-item" href="/manage/glossary"><span class="sr-only">业务词典</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>搜索近义词表</span></a>
+        </nav>
+        <div class="sb-section-label">审核与谁能看</div>
+        <nav class="sb-nav" aria-label="审核与谁能看">
+          <a class="sb-item" href="/manage/repairs"><span class="sr-only">校订审核</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>核对识别出的文字</span></a>
+          <a class="sb-item" href="/manage/effectivity"><span class="sr-only">生效审批</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>设生效时间上线</span></a>
+          <a class="sb-item" href="/manage/responsibility"><span class="sr-only">资料负责人</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>指定制度联系人</span></a>
+          <a class="sb-item" href="/manage/readers"><span class="sr-only">读者规则</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>设置谁有权限看</span></a>
+          <a class="sb-item" href="/manage/governance"><span class="sr-only">空间治理</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>临时共享与交接</span></a>
+          <a class="sb-item" href="/manage/model-egress"><span class="sr-only">外发规则</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>AI 允许读哪些文件</span></a>
+        </nav>
+        <div class="sb-section-label">省流总结与记录</div>
+        <nav class="sb-nav" aria-label="省流总结与记录">
+          <a class="sb-item" href="/manage/wiki"><span class="sr-only">发布台账</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>核对 AI 省流总结</span></a>
+          <a class="sb-item active" href="/manage/feedback" aria-current="page"><span class="sr-only">纠错办理</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>员工报错反馈</span></a>
+          <a class="sb-item" href="/manage/runtime"><span class="sr-only">任务积压</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>后台排队进度</span></a>
+          <a class="sb-item" href="/manage/lifecycle"><span class="sr-only">保留处置与审计</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>清理与操作记录</span></a>
+          <a class="sb-item" href="/manage/archives"><span class="sr-only">归档导出</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>打包备份导出</span></a>
+        </nav>
+      </div>
+      <a class="sb-bottom-card" href="/">
+        <span class="sr-only">员工取证</span>
+        <span aria-hidden="true">返回员工查制度页</span>
+        <span class="gold-arrow" aria-hidden="true">↗</span>
+      </a>
+    </div>
+  </aside>
+  <div class="main-shell">
+    <header class="site-bar">
+      <div class="site-bar-inner">
+        <div class="top-tabs">
+          <span class="top-tab active">员工报错反馈</span>
+          <span class="top-subnote">跟进员工提的内容有误或搜不到规定问题</span>
+        </div>
+        <div class="session-controls">
+          <span class="seal-pill"><span class="gold-dot" aria-hidden="true"></span>处理完成后员工会在个人提醒里收到结果</span>
+        </div>
+      </div>
+    </header>
+    <main class="page-width wiki-management">
+      <header class="ledger-heading">
+        <h1>处理员工提的报错与缺漏反馈</h1>
+        <p>查看员工提交的“内容有误”或“没搜到规定”反馈单，对照原文核实后填写答复说明，或补齐新制度后请员工复查。</p>
+      </header>
+    <section class="ledger-panel" id="work-lock" aria-labelledby="work-access-title">
+      <div class="panel-heading"><h2 id="work-access-title"><span class="sr-only">载入办理凭据</span><span aria-hidden="true">输入处理人口令</span></h2><span class="local-label"><span></span>验证口令后进入</span></div>
+      <form class="wiki-access-form" id="work-login">
+        <label for="work-token"><span class="sr-only">办理测试凭据</span><span aria-hidden="true">处理人口令</span></label>
+        <div class="access-field">
+          <input type="password" id="work-token" autocomplete="off" spellcheck="false" maxlength="16384" required>
+          <button type="submit" class="primary-button"><span class="sr-only">查看待办</span><span aria-hidden="true">查看员工报错</span></button>
+        </div>
+        <p id="work-lock-message" class="status-message" role="status"></p>
+      </form>
+    </section>
+    <div id="work-workspace" hidden>
+      <section class="ledger-panel" aria-labelledby="work-board-title">
+        <div class="panel-heading">
+          <h2 id="work-board-title" tabindex="-1"><span class="sr-only">待办工单</span><span aria-hidden="true">待处理的员工报错与反馈列表</span></h2>
+          <div class="action-group">
+            <button type="button" id="work-refresh" class="quiet-button"><span class="sr-only">刷新待办</span><span aria-hidden="true">刷新列表</span></button>
+            <button type="button" id="work-logout" class="quiet-button"><span class="sr-only">退出办理</span><span aria-hidden="true">退出后台</span></button>
+          </div>
+        </div>
+        <p class="panel-status" id="work-list-status" role="status"></p>
+        <ul id="work-items" class="result-list" aria-busy="false"></ul>
+        <div class="ledger-pagination"><button type="button" id="work-next" class="quiet-button" hidden>下一页</button></div>
+      </section>
+      <p id="work-action-status" class="work-message" role="status"></p>
+      <section id="work-detail" class="ledger-panel work-detail" hidden aria-labelledby="work-detail-title">
+        <div class="panel-heading"><h2 id="work-detail-title" tabindex="-1"><span class="sr-only">办理工单</span><span aria-hidden="true">对照原文核实并回复员工</span></h2></div>
+        <p id="work-selection" class="panel-status"></p>
+        <div class="work-controls">
+          <button id="work-read" type="button" class="quiet-button" hidden><span class="sr-only">以本人权限核对原文</span><span aria-hidden="true">打开原文件核对</span></button>
+          <div id="work-evidence"></div>
+          <div id="work-quality" class="work-quality" hidden>
+            <p class="input-hint">隔离针对整个转录批次，依赖该批次的 Wiki 会停用；不删除原件。</p>
+            <button type="button" id="work-quarantine" class="quiet-button"><span class="sr-only">隔离此转录批次</span><span aria-hidden="true">先下线隔离这批识别结果</span></button>
+          </div>
+          <form id="work-assign" hidden autocomplete="off">
+            <label for="work-assignee"><span class="sr-only">受任员工编号</span><span aria-hidden="true">转交给哪位同事跟进（填员工编号）</span></label>
+            <div class="access-field">
+              <input id="work-assignee" maxlength="36" spellcheck="false" required>
+              <button type="submit" class="primary-button"><span class="sr-only">保存分派</span><span aria-hidden="true">确认转交</span></button>
+            </div>
+          </form>
+          <form id="work-process" hidden autocomplete="off">
+            <label id="work-correction-label" for="work-correction"><span class="sr-only">更正取证请求编号</span><span aria-hidden="true">改好后重新验证的查询编号</span></label>
+            <div class="access-field">
+              <input id="work-correction" maxlength="36" spellcheck="false">
+              <button id="work-corrected" type="submit" class="primary-button"><span class="sr-only">登记已修正</span><span aria-hidden="true">标记为已改好</span></button>
+            </div>
+          </form>
+          <div id="work-conclusion-fields" class="work-conclusion" hidden>
+            <label for="work-conclusion"><span class="sr-only">发给提交人的处理结论</span><span aria-hidden="true">核对无误时，选一条回复给报错员工</span></label>
+            <div class="access-field">
+              <select id="work-conclusion" autocomplete="off" disabled>
+                <option value="">核对完原文后选一条回复</option>
+                <option value="source_text_confirmed">已核对原文件，现有文字与公司正式制度一致</option>
+                <option value="applicability_confirmed">已核对适用范围，该条款按对应条件执行</option>
+              </select>
+              <button id="work-explain" type="button" class="quiet-button" disabled><span class="sr-only">记录已有依据</span><span aria-hidden="true">发这条回复给员工</span></button>
+            </div>
+          </div>
+          <form id="work-verify" hidden autocomplete="off">
+            <label for="work-retest"><span class="sr-only">复测请求编号</span><span aria-hidden="true">复查验证编号</span></label>
+            <div class="access-field">
+              <input id="work-retest" maxlength="36" spellcheck="false" required>
+              <button type="submit" class="primary-button"><span class="sr-only">确认复测通过</span><span aria-hidden="true">复查无误，关闭反馈单</span></button>
+            </div>
+          </form>
+        </div>
+      </section>
+    </div>
+    <footer>提示：为保护隐私，列表里不会直接露出敏感正文；把反馈单转给同事也不会自动放大对方的文件查看权限。</footer>
+      </main>
+  </div>
+</body>
+</html>

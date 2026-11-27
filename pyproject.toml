@@ -1,0 +1,44 @@
+[build-system]
+requires = ["hatchling>=1.27,<2"]
+build-backend = "hatchling.build"
+
+[project]
+name = "thalion-enterprise-kb"
+version = "0.1.0.dev0"
+description = "Thalion enterprise knowledge base"
+requires-python = ">=3.14,<3.15"
+license = "Apache-2.0"
+license-files = ["LICENSE", "NOTICE"]
+dependencies = [
+  "alembic==1.20.1",
+  "botocore==1.44.12",
+  "cryptography==50.0.2",
+  "fastapi==0.165.0",
+  "httpx2==2.16.2",
+  "markdown-it-py==4.3.0",
+  "mcp==2.3.0",
+  "psycopg[binary]==3.3.9",
+  "pyjwt==2.15.1",
+  "SQLAlchemy==2.1.9",
+  "uvicorn==0.54.0",
+]
+
+[project.scripts]
+thalion-db = "enterprise_kb.database:main"
+thalion-parse = "enterprise_kb.parse_worker:main"
+thalion-serve = "enterprise_kb.transport.local:main"
+thalion-worker = "enterprise_kb.worker:main"
+
+[project.optional-dependencies]
+pdf = ["pypdfium2==5.15.2"]
+
+[dependency-groups]
+dev = ["pytest==9.2.0"]
+browser = ["playwright==1.65.2"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/enterprise_kb"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --tb=short"

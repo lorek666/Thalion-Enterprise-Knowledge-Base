@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>核对 AI 省流总结 · 知识库管理后台</title>
+  <link rel="stylesheet" href="/employee/portal.css">
+  <link rel="stylesheet" href="/manage/wiki.css">
+  <script src="/manage/wiki.js" defer></script>
+  <script type="module" src="/manage/sso.js"></script>
+</head>
+<body class="manage-app">
+  <aside class="ink-sidebar" aria-label="管理入口">
+    <div class="sb-content">
+      <div class="sb-head-row">
+        <a class="sb-brand" href="/manage/catalog">
+          <span class="sb-seal" aria-hidden="true">核</span>
+          <span>
+            <strong class="sb-title">知识库管理后台</strong>
+            <small class="sb-subtitle">管文件 · 设权限 · 看审核</small>
+          </span>
+        </a>
+      </div>
+      <div class="sb-nav-scroll">
+        <div class="sb-section-label">文件与同步</div>
+        <nav class="sb-nav" aria-label="文件与同步">
+          <a class="sb-item" href="/manage/catalog"><span class="sr-only">空间目录</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>全部制度文件</span></a>
+          <a class="sb-item" href="/manage/ingest"><span class="sr-only">资料入库</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>上传新文件</span></a>
+          <a class="sb-item" href="/manage/sources"><span class="sr-only">来源同步</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>OA 自动同步状态</span></a>
+          <a class="sb-item" href="/manage/glossary"><span class="sr-only">业务词典</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>搜索近义词表</span></a>
+        </nav>
+        <div class="sb-section-label">审核与谁能看</div>
+        <nav class="sb-nav" aria-label="审核与谁能看">
+          <a class="sb-item" href="/manage/repairs"><span class="sr-only">校订审核</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>核对识别出的文字</span></a>
+          <a class="sb-item" href="/manage/effectivity"><span class="sr-only">生效审批</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>设生效时间上线</span></a>
+          <a class="sb-item" href="/manage/responsibility"><span class="sr-only">资料负责人</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>指定制度联系人</span></a>
+          <a class="sb-item" href="/manage/readers"><span class="sr-only">读者规则</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>设置谁有权限看</span></a>
+          <a class="sb-item" href="/manage/governance"><span class="sr-only">空间治理</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>临时共享与交接</span></a>
+          <a class="sb-item" href="/manage/model-egress"><span class="sr-only">外发规则</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>AI 允许读哪些文件</span></a>
+        </nav>
+        <div class="sb-section-label">省流总结与记录</div>
+        <nav class="sb-nav" aria-label="省流总结与记录">
+          <a class="sb-item active" href="/manage/wiki" aria-current="page"><span class="sr-only">发布台账</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>核对 AI 省流总结</span></a>
+          <a class="sb-item" href="/manage/feedback"><span class="sr-only">纠错办理</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>员工报错反馈</span></a>
+          <a class="sb-item" href="/manage/runtime"><span class="sr-only">任务积压</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>后台排队进度</span></a>
+          <a class="sb-item" href="/manage/lifecycle"><span class="sr-only">保留处置与审计</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>清理与操作记录</span></a>
+          <a class="sb-item" href="/manage/archives"><span class="sr-only">归档导出</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>打包备份导出</span></a>
+        </nav>
+      </div>
+      <a class="sb-bottom-card" href="/">
+        <span class="sr-only">员工取证</span>
+        <span aria-hidden="true">返回员工查制度页</span>
+        <span class="gold-arrow" aria-hidden="true">↗</span>
+      </a>
+    </div>
+  </aside>
+  <div class="main-shell">
+    <header class="site-bar">
+      <div class="site-bar-inner">
+        <div class="top-tabs">
+          <span class="top-tab active">核对 AI 刚写的总结</span>
+          <span class="top-subnote">左边看大白话总结草稿 · 右边逐句对照正式制度原文</span>
+        </div>
+        <div class="session-controls">
+          <span class="seal-pill"><span class="gold-dot" aria-hidden="true"></span>双人把关：发起草稿与最终核对需换一位同事</span>
+        </div>
+      </div>
+    </header>
+    <main class="page-width wiki-management">
+      <header class="ledger-heading">
+        <h1><span class="sr-only">Wiki 发布台账</span><span aria-hidden="true">核对 AI 省流总结 &amp; 已上线清单</span></h1>
+        <p>把长篇制度提炼成员工一眼看懂的大白话要点。AI 生成草稿后必须换另一位同事逐句对照原文核实，全对才发给员工看。</p>
+      </header>
+    <section class="ledger-panel" id="wiki-lock" aria-labelledby="wiki-access-title">
+      <div class="panel-heading"><h2 id="wiki-access-title"><span class="sr-only">空间负责人验证</span><span aria-hidden="true">输入管理员或核对人口令</span></h2><span class="local-label"><span></span>验证口令后进入</span></div>
+      <form class="wiki-access-form" id="wiki-access-form">
+        <label for="wiki-token"><span class="sr-only">管理测试凭据</span><span aria-hidden="true">管理员 / 核对人口令</span></label>
+        <div class="access-field">
+          <input type="password" id="wiki-token" autocomplete="off" spellcheck="false" maxlength="16384" required>
+          <button type="submit" class="primary-button"><span class="sr-only">查看发布台账</span><span aria-hidden="true">进入总结核对台</span></button>
+        </div>
+        <p id="wiki-lock-message" class="status-message" role="status"></p>
+      </form>
+    </section>
+    <section class="ledger-panel" id="wiki-workspace" hidden aria-labelledby="wiki-register-title">
+      <div class="panel-heading">
+        <h2 id="wiki-register-title" tabindex="-1"><span class="sr-only">当前空间</span><span aria-hidden="true">已上线的省流总结清单</span></h2>
+        <div class="action-group">
+          <button id="wiki-refresh" class="quiet-button" type="button"><span class="sr-only">刷新台账</span><span aria-hidden="true">刷新列表</span></button>
+          <button id="wiki-logout" class="quiet-button" type="button"><span class="sr-only">退出管理</span><span aria-hidden="true">退出后台</span></button>
+        </div>
+      </div>
+      <div id="wiki-ledger-section">
+        <p id="wiki-status" class="panel-status" role="status"></p>
+        <ul class="result-list" id="wiki-topics" aria-busy="false"></ul>
+        <div class="ledger-pagination"><button id="wiki-next" class="quiet-button" type="button" hidden>下一页</button></div>
+      </div>
+      <section class="work-detail" id="wiki-rebuilds-section" hidden aria-labelledby="wiki-rebuilds-title">
+        <div class="panel-heading"><h2 id="wiki-rebuilds-title"><span class="sr-only">停用待重编事件</span><span aria-hidden="true">原制度已更新、需重新核对的旧总结</span></h2></div>
+        <p id="wiki-rebuilds-status" class="panel-status" role="status"></p>
+        <ul class="result-list" id="wiki-rebuilds"></ul>
+      </section>
+      <section class="work-detail" id="wiki-author-section" hidden aria-labelledby="wiki-author-title">
+        <div class="panel-heading"><h2 id="wiki-author-title"><span class="sr-only">组装输入与提交草稿</span><span aria-hidden="true">第 1 步：选制度文件，让 AI 生成或编写大白话总结草稿</span></h2></div>
+        <div class="work-controls">
+          <form id="wiki-inputs-form">
+            <label for="wiki-business-date"><span class="sr-only">办理业务日期</span><span aria-hidden="true">按哪天生效的规定来写（业务日期）</span></label>
+            <input type="date" id="wiki-business-date" required>
+            <label for="wiki-direct-inputs"><span class="sr-only">直接依据列表</span><span aria-hidden="true">引用哪些制度原文段落（每行一条：段落编号:版本号）</span></label>
+            <textarea id="wiki-direct-inputs" rows="2" placeholder="每行一条：passage_id:revision" required></textarea>
+            <label for="wiki-parent-manifests"><span class="sr-only">继承父清单（可选，重编时留空）</span><span aria-hidden="true">顺带沿用之前锁好的依据清单（没有就留空）</span></label>
+            <textarea id="wiki-parent-manifests" rows="2" placeholder="每行一个 manifest_id"></textarea>
+            <label for="wiki-rebuild-event"><span class="sr-only">停用重编事件标识（干净重编时填写）</span><span aria-hidden="true">重编旧总结的提醒单号（平时新写留空）</span></label>
+            <input type="text" id="wiki-rebuild-event" autocomplete="off" spellcheck="false" placeholder="留空表示常规编写">
+            <div class="work-buttons">
+              <button type="submit" class="primary-button"><span class="sr-only">组装并封存输入清单</span><span aria-hidden="true">锁定所选制度原文作为依据</span></button>
+              <button type="button" class="quiet-button" id="wiki-clear-rebuild"><span class="sr-only">清除重编标记</span><span aria-hidden="true">清空重编单号</span></button>
+            </div>
+          </form>
+          <p id="wiki-inputs-status" class="status-message" role="status"></p>
+          <form id="wiki-candidate-form">
+            <label for="wiki-manifest-id"><span class="sr-only">已封存输入清单标识</span><span aria-hidden="true">已锁好的制度依据单号（点上面按钮自动填好）</span></label>
+            <input type="text" id="wiki-manifest-id" autocomplete="off" spellcheck="false" required>
+            <label for="wiki-topic-key"><span class="sr-only">主题键</span><span aria-hidden="true">总结英文短代号（例如 travel-hotel）</span></label>
+            <input type="text" id="wiki-topic-key" autocomplete="off" spellcheck="false" placeholder="例如 travel-hotel" required>
+            <label for="wiki-draft-title"><span class="sr-only">草稿标题</span><span aria-hidden="true">总结大标题（员工搜到时一眼看到的标题）</span></label>
+            <input type="text" id="wiki-draft-title" autocomplete="off" maxlength="256" required>
+            <label for="wiki-draft-markdown"><span class="sr-only">Markdown 正文</span><span aria-hidden="true">大白话总结内容（也可以点下方按钮让 AI 帮你先写）</span></label>
+            <textarea id="wiki-draft-markdown" rows="4" required></textarea>
+            <label for="wiki-reviewer-ref"><span class="sr-only">独立审核人标识</span><span aria-hidden="true">请哪位同事帮我把关核对（填对方员工编号，不能填自己）</span></label>
+            <input type="text" id="wiki-reviewer-ref" autocomplete="off" spellcheck="false" required>
+            <label for="wiki-citations"><span class="sr-only">正文引用依据</span><span aria-hidden="true">正文对应哪几段正式原文（每行一条：段落编号:版本号）</span></label>
+            <textarea id="wiki-citations" rows="2" placeholder="每行一条：passage_id:revision" required></textarea>
+            <label for="wiki-statements"><span class="sr-only">可核对陈述</span><span aria-hidden="true">提炼给员工看的核心要点（选填，每行一句大白话）</span></label>
+            <textarea id="wiki-statements" rows="2" placeholder="可选，每行一条，默认绑定正文引用依据"></textarea>
+            <label for="wiki-ai-instructions"><span class="sr-only">AI 起草补充要求（仅调用获准模型网关时使用）</span><span aria-hidden="true">给 AI 的写作嘱咐（选填，比如按城市列金额上限、讲清例外情况）</span></label>
+            <textarea id="wiki-ai-instructions" rows="2" placeholder="可选：例如按职级与城市分节列出金额上限和审批流程，保留例外条款"></textarea>
+            <label for="wiki-ai-budget"><span class="sr-only">AI 单次预算上限（microunits，100000 = 0.1 USD）</span><span aria-hidden="true">本次 AI 生成费用上限（默认 100000 约合 0.1 美元）</span></label>
+            <input type="number" id="wiki-ai-budget" min="1" max="50000000" value="100000">
+            <div class="work-buttons">
+              <button type="submit" class="primary-button"><span class="sr-only">提交候选草稿</span><span aria-hidden="true">提交给同事核对</span></button>
+              <button type="button" class="quiet-button" id="wiki-ai-generate-btn"><span class="sr-only">AI 辅助生成待审草稿</span><span aria-hidden="true">让 AI 先写一版大白话草稿</span></button>
+            </div>
+          </form>
+          <p id="wiki-candidate-status" class="status-message" role="status"></p>
+        </div>
+      </section>
+      <section class="work-detail" id="wiki-queue-section" hidden aria-labelledby="wiki-queue-title">
+        <div class="panel-heading"><h2 id="wiki-queue-title"><span class="sr-only">修订审核与发布队列</span><span aria-hidden="true">第 2 步：换一位同事对照原文核对，无误后发给员工看</span></h2></div>
+        <p id="wiki-queue-status" class="panel-status" role="status"></p>
+        <ul class="result-list" id="wiki-revisions"></ul>
+        <div class="work-controls" id="wiki-preview-panel" hidden>
+          <div class="wiki-review-split">
+            <div class="wiki-preview-box">
+              <div class="wiki-col-banner">
+                <span class="wiki-col-kicker">✦ 左边：AI / 同事整理的大白话总结草稿</span>
+                <span class="wiki-col-tip">点下方“看右边原文”，右边立即对照正式文件</span>
+              </div>
+              <h3 id="wiki-preview-title"></h3>
+              <p id="wiki-preview-meta" class="repair-meta"></p>
+              <pre id="wiki-preview-markdown"></pre>
+              <h4><span class="sr-only">全部实际输入依据</span><span aria-hidden="true">这份总结引用了哪几处正式制度原文</span></h4>
+              <ul class="result-list" id="wiki-preview-inputs"></ul>
+            </div>
+            <div class="wiki-right-inspect">
+              <div class="wiki-citation-seal">
+                <span>● 右边：公司正式文件原文（供你逐句核实）</span>
+                <span class="wiki-seal-tag">双人把关 · 留档备查</span>
+              </div>
+              <div id="wiki-citation-empty" class="wiki-citation-empty">
+                点左边任意一条依据后面的「看右边原文 ▸」，这里就会实时调出公司正式制度原文，方便你对照核实金额、城市名单和生效条件。
+              </div>
+              <div id="wiki-citation-detail" class="wiki-citation-box" hidden>
+                <h4><span class="sr-only">原文核对</span><span aria-hidden="true">公司正式文件原文摘录</span></h4>
+                <pre id="wiki-citation-text"></pre>
+              </div>
+              <div id="wiki-comparison-box" class="wiki-citation-box" hidden>
+                <h4><span class="sr-only">与前代已发布差异</span><span aria-hidden="true">和上一版总结相比改了哪里</span></h4>
+                <p id="wiki-comparison-meta"></p>
+              </div>
+              <div class="wiki-check-guide">
+                <span class="wiki-check-ring" aria-hidden="true">逐句</span>
+                <p>核对小贴士：请重点核对金额上限、适用职级、报销条件和生效日期是否与原文件完全一致；只要原制度以后改版，这条总结会自动下线重审。</p>
+              </div>
+              <div class="wiki-signoff-box">
+                <form id="wiki-review-form">
+                  <label for="wiki-review-reason"><span class="sr-only">审核原因码</span><span aria-hidden="true">核对结论代号（英文小写加下划线，上线后留档备查）</span></label>
+                  <input type="text" id="wiki-review-reason" autocomplete="off" spellcheck="false" value="verified_against_source" required>
+                  <div class="work-buttons">
+                    <button type="button" class="primary-button" id="wiki-approve-btn"><span class="sr-only">批准该修订</span><span aria-hidden="true">核对无误，批准通过</span></button>
+                    <button type="button" class="quiet-button" id="wiki-reject-btn"><span class="sr-only">驳回该修订</span><span aria-hidden="true">写得不对，打回重改</span></button>
+                    <button type="button" class="primary-button" id="wiki-publish-btn" hidden><span class="sr-only">发布已批修订</span><span aria-hidden="true">正式发给员工看</span></button>
+                  </div>
+                </form>
+                <p id="wiki-review-status" class="status-message" role="status"></p>
+                <ul class="result-list" id="wiki-publish-diagnosis"></ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+    <section class="work-detail" id="wiki-release-section" hidden aria-labelledby="wiki-release-title">
+      <div class="panel-heading"><h2 id="wiki-release-title"><span class="sr-only">空间发布试切与回退</span><span aria-hidden="true">准确率检查 &amp; 整库上线切换</span></h2></div>
+      <p id="wiki-release-summary" class="panel-status" role="status"></p>
+      <div class="work-controls">
+        <form id="wiki-release-switch-form">
+          <label for="wiki-release-action"><span class="sr-only">发布动作</span><span aria-hidden="true">要执行哪项上线操作</span></label>
+          <select id="wiki-release-action">
+            <option value="trial_switch">更新本库搜索与省流总结设置</option>
+            <option value="disable_wiki">临时关闭省流总结（员工只查正式原文）</option>
+            <option value="rollback">一键退回之前的上线设置</option>
+          </select>
+          <label for="wiki-release-wiki-enabled"><span class="sr-only">Wiki 检索交付开关</span><span aria-hidden="true">是否向员工展示“省流总结”</span></label>
+          <select id="wiki-release-wiki-enabled">
+            <option value="true">开启（展示人工核对过的省流总结）</option>
+            <option value="false">关闭（员工只搜正式原文）</option>
+          </select>
+          <label for="wiki-release-lexical-mode"><span class="sr-only">词项检索模式</span><span aria-hidden="true">员工搜制度时的匹配方式</span></label>
+          <select id="wiki-release-lexical-mode">
+            <option value="indexed">快速关键词索引（indexed，默认推荐）</option>
+            <option value="direct_scan">原文全量直扫（direct_scan，应急兜底）</option>
+            <option value="hybrid_vector">语义理解 + 关键词混合搜索（hybrid_vector）</option>
+          </select>
+          <label for="wiki-release-target"><span class="sr-only">历史发布回退目标（仅回退动作时选择）</span><span aria-hidden="true">要退回到哪一次历史设置（选“一键退回”时才填）</span></label>
+          <select id="wiki-release-target">
+            <option value="">不适用</option>
+          </select>
+          <label for="wiki-release-trigger"><span class="sr-only">观察与回退触发说明</span><span aria-hidden="true">遇到什么情况需要退回（留档备注）</span></label>
+          <input type="text" id="wiki-release-trigger" maxlength="240" value="若命中率下降或出现安全拦截立即回退" required>
+          <label for="wiki-release-reason"><span class="sr-only">原因码</span><span aria-hidden="true">操作原因代号（英文小写加下划线）</span></label>
+          <input type="text" id="wiki-release-reason" autocomplete="off" spellcheck="false" value="space_rollout_switch" required>
+          <div class="work-buttons">
+            <button type="submit" class="primary-button"><span class="sr-only">执行空间发布切换</span><span aria-hidden="true">保存整库上线设置</span></button>
+          </div>
+        </form>
+        <p id="wiki-release-switch-status" class="status-message" role="status"></p>
+        <form id="wiki-topic-rollback-form">
+          <label for="wiki-rollback-topic"><span class="sr-only">主题标识</span><span aria-hidden="true">要退回哪条省流总结</span></label>
+          <select id="wiki-rollback-topic">
+            <option value="">暂无已发布主题</option>
+          </select>
+          <label for="wiki-rollback-revision"><span class="sr-only">目标历史已发布修订</span><span aria-hidden="true">退回到哪一版历史总结</span></label>
+          <select id="wiki-rollback-revision">
+            <option value="">暂无可回退修订</option>
+          </select>
+          <label for="wiki-rollback-date"><span class="sr-only">核验业务日期</span><span aria-hidden="true">按哪天校验权限与文件有效性</span></label>
+          <input type="date" id="wiki-rollback-date" required>
+          <label for="wiki-rollback-reason"><span class="sr-only">回退原因码</span><span aria-hidden="true">退回原因代号（英文小写加下划线）</span></label>
+          <input type="text" id="wiki-rollback-reason" autocomplete="off" spellcheck="false" value="wiki_quality_regression" required>
+          <div class="work-buttons">
+            <button type="submit" class="quiet-button"><span class="sr-only">执行单主题安全回退</span><span aria-hidden="true">将这条总结安全退回旧版</span></button>
+          </div>
+        </form>
+        <p id="wiki-topic-rollback-status" class="status-message" role="status"></p>
+      </div>
+      <ul class="result-list" id="wiki-release-history"></ul>
+    </section>
+    </section>
+    <footer>提示：就算这里已上线，员工也只能看到自己部门有权看的内容；每份总结发出去前都会自动再核查一遍权限和原文件是否改动。</footer>
+      </main>
+  </div>
+</body>
+</html>

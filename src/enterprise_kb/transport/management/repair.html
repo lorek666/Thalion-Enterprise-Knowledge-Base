@@ -1,0 +1,199 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>核对识别出的文字 · 知识库管理后台</title>
+  <link rel="stylesheet" href="/employee/portal.css">
+  <link rel="stylesheet" href="/manage/wiki.css">
+  <script src="/manage/repair.js" defer></script>
+  <script type="module" src="/manage/sso.js"></script>
+</head>
+<body class="manage-app">
+  <aside class="ink-sidebar" aria-label="管理入口">
+    <div class="sb-content">
+      <div class="sb-head-row">
+        <a class="sb-brand" href="/manage/catalog">
+          <span class="sb-seal" aria-hidden="true">核</span>
+          <span>
+            <strong class="sb-title">知识库管理后台</strong>
+            <small class="sb-subtitle">管文件 · 设权限 · 看审核</small>
+          </span>
+        </a>
+      </div>
+      <div class="sb-nav-scroll">
+        <div class="sb-section-label">文件与同步</div>
+        <nav class="sb-nav" aria-label="文件与同步">
+          <a class="sb-item" href="/manage/catalog"><span class="sr-only">空间目录</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>全部制度文件</span></a>
+          <a class="sb-item" href="/manage/ingest"><span class="sr-only">资料入库</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>上传新文件</span></a>
+          <a class="sb-item" href="/manage/sources"><span class="sr-only">来源同步</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>OA 自动同步状态</span></a>
+          <a class="sb-item" href="/manage/glossary"><span class="sr-only">业务词典</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>搜索近义词表</span></a>
+        </nav>
+        <div class="sb-section-label">审核与谁能看</div>
+        <nav class="sb-nav" aria-label="审核与谁能看">
+          <a class="sb-item active" href="/manage/repairs" aria-current="page"><span class="sr-only">校订审核</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>核对识别出的文字</span></a>
+          <a class="sb-item" href="/manage/effectivity"><span class="sr-only">生效审批</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>设生效时间上线</span></a>
+          <a class="sb-item" href="/manage/responsibility"><span class="sr-only">资料负责人</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>指定制度联系人</span></a>
+          <a class="sb-item" href="/manage/readers"><span class="sr-only">读者规则</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>设置谁有权限看</span></a>
+          <a class="sb-item" href="/manage/governance"><span class="sr-only">空间治理</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>临时共享与交接</span></a>
+          <a class="sb-item" href="/manage/model-egress"><span class="sr-only">外发规则</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>AI 允许读哪些文件</span></a>
+        </nav>
+        <div class="sb-section-label">省流总结与记录</div>
+        <nav class="sb-nav" aria-label="省流总结与记录">
+          <a class="sb-item" href="/manage/wiki"><span class="sr-only">发布台账</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>核对 AI 省流总结</span></a>
+          <a class="sb-item" href="/manage/feedback"><span class="sr-only">纠错办理</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>员工报错反馈</span></a>
+          <a class="sb-item" href="/manage/runtime"><span class="sr-only">任务积压</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>后台排队进度</span></a>
+          <a class="sb-item" href="/manage/lifecycle"><span class="sr-only">保留处置与审计</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>清理与操作记录</span></a>
+          <a class="sb-item" href="/manage/archives"><span class="sr-only">归档导出</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>打包备份导出</span></a>
+        </nav>
+      </div>
+      <a class="sb-bottom-card" href="/">
+        <span class="sr-only">员工取证</span>
+        <span aria-hidden="true">返回员工查制度页</span>
+        <span class="gold-arrow" aria-hidden="true">↗</span>
+      </a>
+    </div>
+  </aside>
+  <div class="main-shell">
+    <header class="site-bar">
+      <div class="site-bar-inner">
+        <div class="top-tabs">
+          <span class="top-tab active">核对识别出的文字</span>
+          <span class="top-subnote">对照原件检查扫描件与表格有没有识别错字</span>
+        </div>
+        <div class="session-controls">
+          <span class="seal-pill"><span class="gold-dot" aria-hidden="true"></span>修改与最终放行需换另一位同事复核</span>
+        </div>
+      </div>
+    </header>
+    <main class="page-width wiki-management">
+      <header class="ledger-heading">
+        <h1>核对文件识别出的文字与表格</h1>
+        <p>对照原文件页面或上一版内容，检查系统自动提取的文字、金额、表格有没有错漏；确认无误后再放行给员工查。</p>
+      </header>
+    <section class="ledger-panel" id="repair-lock" aria-labelledby="repair-access-title">
+      <div class="panel-heading"><h2 id="repair-access-title"><span class="sr-only">审核人验证</span><span aria-hidden="true">输入核对人口令</span></h2><span class="local-label"><span></span>验证口令后进入</span></div>
+      <form class="wiki-access-form" id="repair-access">
+        <label for="repair-token"><span class="sr-only">管理测试凭据</span><span aria-hidden="true">核对人口令</span></label>
+        <div class="access-field">
+          <input type="password" id="repair-token" autocomplete="off" spellcheck="false" maxlength="16384" required>
+          <button type="submit" class="primary-button"><span class="sr-only">载入审核凭据</span><span aria-hidden="true">进入文字核对台</span></button>
+        </div>
+        <p class="status-message" id="repair-lock-message" role="status"></p>
+      </form>
+    </section>
+    <section class="ledger-panel" id="repair-workspace" aria-labelledby="repair-title" hidden>
+      <div class="panel-heading">
+        <h2 id="repair-title"><span class="sr-only">审核工作区</span><span aria-hidden="true">对照原件核对文字与表格</span></h2>
+        <button id="repair-logout" class="quiet-button" type="button"><span class="sr-only">更换凭据</span><span aria-hidden="true">切换账号 / 退出</span></button>
+      </div>
+      <form class="wiki-access-form" id="repair-search" autocomplete="off">
+        <fieldset class="repair-mode">
+          <legend>选择你要核对的文件类型</legend>
+          <label class="repair-option"><input type="radio" name="repair-mode" id="repair-mode-markdown" value="markdown" checked><span class="sr-only">文本校订差异</span><span aria-hidden="true">核对纯文本改动</span></label>
+          <label class="repair-option"><input type="radio" name="repair-mode" id="repair-mode-docx" value="docx"><span class="sr-only">DOCX 批次审核</span><span aria-hidden="true">核对 Word 表格和文字</span></label>
+          <label class="repair-option"><input type="radio" name="repair-mode" id="repair-mode-pdf" value="pdf"><span class="sr-only">PDF 原页</span><span aria-hidden="true">查看 PDF 原文件图片</span></label>
+          <label class="repair-option"><input type="radio" name="repair-mode" id="repair-mode-proposal" value="proposal"><span class="sr-only">提交 OCR 候选</span><span aria-hidden="true">手动纠正 PDF 错字</span></label>
+          <label class="repair-option"><input type="radio" name="repair-mode" id="repair-mode-correction" value="correction"><span class="sr-only">复核 OCR 候选</span><span aria-hidden="true">复核同事改好的错字</span></label>
+          <label class="repair-option"><input type="radio" name="repair-mode" id="repair-mode-batch" value="batch"><span class="sr-only">PDF 整批审定</span><span aria-hidden="true">整份 PDF 最终放行</span></label>
+        </fieldset>
+        <div class="repair-lookup">
+          <div id="repair-run-field">
+            <label for="repair-run" id="repair-run-label">校订批次编号</label>
+            <input id="repair-run" maxlength="36" spellcheck="false" required>
+          </div>
+          <div id="repair-correction-field" hidden>
+            <label for="repair-correction">候选编号</label>
+            <input id="repair-correction" maxlength="36" spellcheck="false" placeholder="填待复核的纠错单编号" required disabled>
+          </div>
+          <div id="repair-page-field" hidden>
+            <label for="repair-page"><span class="sr-only">物理页码</span><span aria-hidden="true">第几页</span></label>
+            <input id="repair-page" inputmode="numeric" maxlength="2" value="1" disabled>
+          </div>
+          <button id="repair-show" type="submit" class="primary-button">查看差异</button>
+        </div>
+      </form>
+      <p class="panel-status" id="repair-status" role="status"></p>
+      <figure class="repair-pdf" id="repair-pdf" hidden>
+        <div class="repair-pdf-bar">
+          <figcaption id="repair-pdf-meta"></figcaption>
+          <label class="repair-option"><input type="checkbox" id="repair-full-size"> 显示原尺寸</label>
+        </div>
+        <div class="repair-pdf-image" id="repair-pdf-image" role="region" aria-label="原页图像" tabindex="0"></div>
+      </figure>
+      <div id="repair-pdf-details" class="repair-change repair-columns" hidden></div>
+      <form class="wiki-access-form" id="repair-propose" autocomplete="off" hidden>
+        <label for="repair-transcript"><span class="sr-only">候选转录</span><span aria-hidden="true">修正后的正确文字内容</span></label>
+        <textarea id="repair-transcript" rows="5" maxlength="32768" spellcheck="false" required></textarea>
+        <label for="repair-proposal-basis"><span class="sr-only">提交依据编号</span><span aria-hidden="true">本次修改登记号（UUID）</span></label>
+        <input id="repair-proposal-basis" maxlength="36" spellcheck="false" required>
+        <div class="work-buttons">
+          <button class="primary-button" type="submit"><span class="sr-only">提交候选</span><span aria-hidden="true">提交给同事复核</span></button>
+        </div>
+      </form>
+      <form class="wiki-access-form" id="repair-review-correction" autocomplete="off" hidden>
+        <label for="repair-correction-basis"><span class="sr-only">复核依据编号</span><span aria-hidden="true">复核留档编号（UUID）</span></label>
+        <input id="repair-correction-basis" maxlength="36" spellcheck="false" required>
+        <div class="work-buttons">
+          <button class="primary-button" type="submit" value="approved"><span class="sr-only">批准候选</span><span aria-hidden="true">改得对，批准通过</span></button>
+          <button class="quiet-button" type="submit" value="rejected"><span class="sr-only">拒绝候选</span><span aria-hidden="true">改得不对，打回</span></button>
+        </div>
+      </form>
+      <form class="wiki-access-form repair-batch" id="repair-approve-batch" autocomplete="off" hidden>
+        <p class="repair-meta" id="repair-batch-meta"></p>
+        <p id="repair-batch-progress" role="status"></p>
+        <label for="repair-batch-basis"><span class="sr-only">整批审定依据编号</span><span aria-hidden="true">整份放行留档编号（UUID）</span></label>
+        <input id="repair-batch-basis" maxlength="36" spellcheck="false" required>
+        <div class="work-buttons">
+          <button class="primary-button" id="repair-approve" type="submit" disabled><span class="sr-only">批准整批</span><span aria-hidden="true">全部核完，正式放行</span></button>
+        </div>
+      </form>
+      <div id="repair-difference" hidden>
+        <p id="repair-meta" class="panel-status repair-meta"></p>
+        <ul id="repair-changes" class="repair-changes"></ul>
+        <form class="wiki-access-form" id="repair-decision" autocomplete="off">
+          <label for="repair-basis"><span class="sr-only">审核依据编号</span><span aria-hidden="true">核对留档编号（UUID）</span></label>
+          <input id="repair-basis" maxlength="36" spellcheck="false" required>
+          <div class="work-buttons">
+            <button class="primary-button" id="repair-approve-decision" type="submit" value="approved">批准校订</button>
+            <button class="quiet-button" type="submit" value="quarantined"><span class="sr-only">拒绝并隔离</span><span aria-hidden="true">有错误，先下线隔离</span></button>
+          </div>
+        </form>
+      </div>
+      <section class="work-detail" id="repair-rule-section" aria-labelledby="repair-rule-title">
+        <div class="panel-heading">
+          <h2 id="repair-rule-title"><span class="sr-only">清洗规则影响清单与跨批次回退</span><span aria-hidden="true">查看识别规则变动影响 &amp; 退回旧版</span></h2>
+          <button id="repair-rule-refresh" class="quiet-button" type="button"><span class="sr-only">载入规则目录</span><span aria-hidden="true">查看识别规则列表</span></button>
+        </div>
+        <div class="work-controls">
+          <p id="repair-rule-catalog-status" class="panel-status" role="status"></p>
+          <ul class="result-list" id="repair-rule-catalog"></ul>
+          <form id="repair-rule-impact-form" autocomplete="off">
+            <label for="repair-rule-revision"><span class="sr-only">规则配置修订号</span><span aria-hidden="true">规则版本号</span></label>
+            <input id="repair-rule-revision" inputmode="numeric" maxlength="18" spellcheck="false" required>
+            <label for="repair-rule-source"><span class="sr-only">限定来源编号（可选）</span><span aria-hidden="true">只查某个来源库（不填查全部）</span></label>
+            <input id="repair-rule-source" maxlength="36" spellcheck="false" placeholder="留空表示当前可见全部来源">
+            <div class="work-buttons">
+              <button type="submit" class="primary-button"><span class="sr-only">查询受影响批次</span><span aria-hidden="true">查哪些文件受影响</span></button>
+            </div>
+          </form>
+          <p id="repair-rule-status" class="status-message" role="status"></p>
+          <ul class="result-list" id="repair-rule-impact-list"></ul>
+          <form id="repair-rule-rollback-form" autocomplete="off" hidden>
+            <label for="repair-rule-reason"><span class="sr-only">回退原因码</span><span aria-hidden="true">退回原因代号（英文小写加下划线）</span></label>
+            <input id="repair-rule-reason" maxlength="64" spellcheck="false" value="faulty_rule_rollback" required>
+            <label for="repair-rule-basis"><span class="sr-only">回退依据编号</span><span aria-hidden="true">退回留档编号（UUID）</span></label>
+            <input id="repair-rule-basis" maxlength="36" spellcheck="false" required>
+            <div class="work-buttons">
+              <button type="submit" class="primary-button"><span class="sr-only">发起跨批次规则回退</span><span aria-hidden="true">一键把受影响文件退回旧规则</span></button>
+            </div>
+          </form>
+          <p id="repair-rule-rollback-status" class="status-message" role="status"></p>
+          <ul class="result-list" id="repair-rule-rollback-items"></ul>
+        </div>
+      </section>
+    </section>
+      </main>
+  </div>
+</body>
+</html>

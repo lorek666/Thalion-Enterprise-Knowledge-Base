@@ -1,0 +1,858 @@
+/* ==================== 管理后台水墨山岚与宣纸台账共享布局 ==================== */
+body.manage-app {
+  display: grid;
+  grid-template-columns: 244px minmax(0, 1fr);
+  min-height: 100vh;
+}
+
+.manage-app .ink-sidebar {
+  padding: 1.2rem 0.9rem 1rem;
+}
+.manage-app .sb-nav-scroll {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding-right: 2px;
+  margin-bottom: 0.75rem;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(229, 200, 136, 0.25) transparent;
+}
+.manage-app .sb-item {
+  min-height: 2.12rem;
+  padding: 0.36rem 0.68rem;
+  font-size: 0.84rem;
+}
+.manage-app .sb-section-label {
+  padding: 0.58rem 0.68rem 0.22rem;
+}
+
+.wiki-management {
+  width: min(82rem, calc(100% - 2.6rem));
+  max-width: 82rem;
+  padding-bottom: 2.4rem;
+}
+.employee-link {
+  color: var(--gold-deep);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+/* 顶部远山留白横幅卡 */
+.ledger-heading {
+  position: relative;
+  overflow: hidden;
+  margin: 1.25rem 0 1.15rem;
+  padding: 1.35rem 1.65rem;
+  border-radius: 16px;
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--gold-main);
+  background: linear-gradient(135deg, #FFFFFF 0%, #FAF8F3 62%, #F4F0E6 100%);
+  box-shadow: var(--shadow-card);
+}
+.ledger-heading > *:not(.banner-mist-canvas) {
+  position: relative;
+  z-index: 1;
+}
+.ledger-heading h1 {
+  font: 700 clamp(1.38rem, 2.5vw, 1.78rem)/1.3 "Songti SC", "STSong", "Noto Serif CJK SC", SimSun, serif;
+  color: var(--ink-primary);
+  margin-bottom: 0.38rem;
+}
+.ledger-heading p {
+  color: var(--ink-secondary);
+  font-size: 0.88rem;
+  max-width: 56rem;
+}
+
+/* 宣纸台账卡片 */
+.ledger-panel {
+  background: var(--xuan-card);
+  border: 1px solid var(--line);
+  border-radius: 15px;
+  box-shadow: var(--shadow-card);
+  overflow: hidden;
+  min-width: 0;
+}
+.ledger-panel + .ledger-panel {
+  margin-top: 1rem;
+}
+.wiki-access-form {
+  padding: 0.35rem 1.25rem 1.15rem;
+  max-width: 42rem;
+  display: grid;
+  gap: 0.55rem;
+}
+.wiki-access-form label {
+  margin-bottom: 0.1rem;
+}
+
+.wiki-topic {
+  border-top: 1px solid var(--line-soft);
+  padding: 1rem 1.25rem;
+  background: var(--xuan-pure);
+}
+.result-list > .wiki-topic,
+.result-list > li.wiki-topic {
+  border: 1px solid var(--line-soft);
+  border-radius: 12px;
+}
+.wiki-topic-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.45rem 1rem;
+}
+.wiki-topic-header h3 {
+  font-size: 1rem;
+  font-weight: 650;
+  color: var(--ink-primary);
+  overflow-wrap: anywhere;
+}
+.wiki-generation {
+  color: var(--ink-secondary);
+  font-size: 0.83rem;
+}
+
+/* 泥金、黛蓝与朱砂状态徽章 */
+.wiki-state {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin: 0.45rem 0.55rem 0.25rem 0;
+  padding: 0.16rem 0.58rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 650;
+  background: var(--gold-tint);
+  border: 1px solid var(--gold-border);
+  color: var(--gold-deep);
+}
+.wiki-state[data-state="needs_rebuild"],
+.wiki-state[data-state="pending"],
+.wiki-state[data-state="under_review"] {
+  background: var(--slate-tint);
+  border-color: rgba(88, 117, 146, 0.32);
+  color: #3D5B78;
+}
+.wiki-state[data-state="rejected"],
+.wiki-state[data-state="withdrawn"] {
+  background: var(--cinnabar-tint);
+  border-color: rgba(158, 59, 51, 0.3);
+  color: var(--cinnabar);
+}
+
+.wiki-reasons {
+  display: inline;
+  padding: 0;
+  color: var(--ink-primary);
+  font-size: 0.84rem;
+}
+.wiki-reasons li {
+  display: inline;
+  margin-right: 0.72rem;
+}
+.wiki-counts {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.6rem;
+  margin: 0.65rem 0 0;
+  padding: 0.7rem 0 0;
+  border-top: 1px dashed var(--line);
+}
+.wiki-counts dt {
+  font-size: 0.78rem;
+  color: var(--ink-secondary);
+}
+.wiki-counts dd {
+  margin: 0;
+  font-weight: 700;
+  color: var(--ink-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.ledger-pagination:has(button:not([hidden])) {
+  padding: 0.75rem 1.25rem;
+  border-top: 1px solid var(--line-soft);
+}
+.work-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-top: 0.55rem;
+}
+.work-conclusion {
+  margin-top: 0.75rem;
+  max-width: 40rem;
+}
+.work-message:not(:empty) {
+  color: var(--ink-secondary);
+  padding: 0.6rem 1.25rem;
+}
+.work-detail {
+  margin-top: 1rem;
+  border-top: 3px solid var(--gold-main);
+}
+.work-detail .panel-status {
+  overflow-wrap: anywhere;
+}
+
+#ingest-history-list summary {
+  cursor: pointer;
+  overflow-wrap: anywhere;
+}
+#ingest-history-list button {
+  overflow-wrap: anywhere;
+  max-width: 100%;
+}
+.work-controls {
+  padding: 0 1.25rem 1.1rem;
+}
+.work-controls form {
+  max-width: 42rem;
+  margin-top: 0.65rem;
+}
+.work-quality {
+  margin-top: 0.7rem;
+}
+.work-quality button {
+  margin-top: 0.35rem;
+}
+.work-original {
+  margin-inline: 0;
+}
+
+/* ==================== 校订审核与双栏对照台 ==================== */
+.repair-changes {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.repair-change {
+  padding: 1rem 1.25rem;
+  border-top: 1px solid var(--line-soft);
+  background: var(--xuan-pure);
+}
+.repair-change h3 {
+  font-size: 0.92rem;
+  overflow-wrap: anywhere;
+  margin-bottom: 0.55rem;
+}
+.repair-columns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.85rem;
+}
+.repair-side {
+  min-width: 0;
+  padding: 0.75rem 0.85rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #FCFBF8;
+}
+.repair-side:last-child {
+  border-color: var(--gold-border);
+  background: linear-gradient(135deg, #FFFDF9 0%, #FAF4E6 100%);
+}
+.repair-side h4 {
+  margin: 0 0 0.3rem;
+  font-size: 0.86rem;
+}
+.repair-side p {
+  color: var(--ink-secondary);
+  font-size: 0.85rem;
+}
+.repair-side pre {
+  margin: 0.45rem 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 0.84rem;
+}
+.repair-table-scroll {
+  overflow-x: auto;
+}
+.repair-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.repair-table caption {
+  margin-bottom: 0.55rem;
+  font-weight: 700;
+  text-align: left;
+}
+.repair-table th,
+.repair-table td {
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--line);
+  text-align: left;
+  vertical-align: top;
+}
+.repair-table th {
+  background: #F6F4EE;
+  white-space: nowrap;
+}
+.repair-table pre {
+  min-width: 5ch;
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.repair-table small {
+  color: var(--ink-secondary);
+  white-space: nowrap;
+}
+.repair-meta {
+  overflow-wrap: anywhere;
+}
+.repair-mode {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem 1rem;
+  border: 0;
+  padding: 0;
+  margin: 0 0 0.55rem;
+}
+.repair-mode legend {
+  padding: 0;
+  margin-bottom: 0.3rem;
+  color: var(--ink-primary);
+  font-size: 0.86rem;
+  font-weight: 650;
+}
+.repair-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 2rem;
+  margin: 0;
+  font-size: 0.84rem;
+}
+.repair-option input {
+  width: 1.05rem;
+  height: 1.05rem;
+  min-height: 0;
+  margin: 0;
+  accent-color: var(--gold-deep);
+}
+.repair-lookup {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: end;
+  gap: 0.65rem;
+}
+.repair-lookup:has(#repair-page-field[hidden]) {
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+.repair-lookup > div {
+  min-width: 0;
+}
+.repair-lookup input[inputmode="numeric"] {
+  width: 5.5rem;
+}
+.repair-pdf {
+  min-width: 0;
+  margin: 0;
+  padding: 0.85rem 1.25rem 1.25rem;
+  border-top: 1px solid var(--line-soft);
+}
+.repair-pdf-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem 1rem;
+  margin-bottom: 0.5rem;
+}
+.repair-pdf-bar figcaption {
+  color: var(--ink-secondary);
+  font-size: 0.86rem;
+  overflow-wrap: anywhere;
+}
+.repair-pdf-image {
+  overflow: auto;
+  max-height: 65vh;
+  background: var(--xuan-pure);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+}
+.repair-pdf-image img {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  margin-inline: auto;
+}
+.repair-pdf-full img {
+  max-width: none;
+}
+.repair-batch {
+  border-top: 1px solid var(--line-soft);
+  padding-top: 0.75rem;
+}
+.repair-batch p {
+  margin-bottom: 0.45rem;
+  color: var(--ink-secondary);
+  font-size: 0.86rem;
+}
+.repair-batch button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+#repair-transcript {
+  resize: vertical;
+}
+
+/* ==================== 空间目录鎏金概览环与台账行 ==================== */
+.catalog-overview-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.42fr) minmax(0, 0.95fr);
+  gap: 1rem;
+  align-items: stretch;
+}
+.catalog-space-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 0.95rem 1.1rem;
+  border-radius: 12px;
+  border: 1px solid var(--line-soft);
+  background: #FFFFFF;
+}
+.catalog-space-brand {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  min-width: 0;
+}
+.space-seal-badge {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: linear-gradient(145deg, #242629 0%, #17181B 100%);
+  border: 2px solid var(--gold-main);
+  color: #EAD096;
+  font: 700 0.82rem/1 "Songti SC", "STSong", "Noto Serif CJK SC", SimSun, serif;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  box-shadow: 0 3px 8px rgba(24, 25, 28, 0.16);
+}
+.catalog-space-brand-text {
+  min-width: 0;
+  flex: 1;
+}
+.catalog-space-sub {
+  margin-top: 0.22rem;
+  color: var(--ink-secondary);
+  font-size: 0.83rem;
+}
+.gold-ring-card {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.15rem;
+  border-radius: 12px;
+  background: linear-gradient(135deg, #FFFDF9 0%, #FAF3E3 100%);
+  border: 1px solid var(--gold-border);
+}
+.gold-ring-badge {
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  border: 4px solid var(--gold-main);
+  background: #FFFFFF;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.86rem;
+  font-weight: 750;
+  color: var(--gold-deep);
+  flex-shrink: 0;
+  box-shadow: 0 3px 10px rgba(197, 155, 72, 0.18);
+}
+.gold-ring-body {
+  min-width: 0;
+  flex: 1;
+}
+.gold-ring-kicker {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--gold-deep);
+  margin-bottom: 0.15rem;
+}
+.gold-ring-stat {
+  font-size: 1.05rem;
+  font-weight: 750;
+  color: var(--ink-primary);
+  margin-bottom: 0.18rem;
+}
+.gold-ring-note {
+  font-size: 0.8rem;
+  color: var(--ink-secondary);
+  overflow-wrap: anywhere;
+}
+.catalog-doc-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.85rem;
+  min-width: 0;
+}
+.catalog-doc-body {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ==================== Wiki 双栏左右展卷核对工作台 ==================== */
+#wiki-preview-panel form {
+  max-width: none;
+}
+.wiki-review-split {
+  display: grid;
+  grid-template-columns: minmax(0, 1.06fr) minmax(0, 0.94fr);
+  gap: 1.1rem;
+  align-items: start;
+  margin-top: 0.85rem;
+}
+.wiki-preview-box {
+  min-width: 0;
+  margin: 0;
+  padding: 1rem 1.15rem;
+  border: 1px solid var(--gold-border);
+  border-left: 4px solid var(--gold-main);
+  border-radius: 13px;
+  background: linear-gradient(135deg, #FFFDF9 0%, #FAF5E8 100%);
+}
+.wiki-col-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem 0.75rem;
+  padding-bottom: 0.65rem;
+  margin-bottom: 0.7rem;
+  border-bottom: 1px solid var(--gold-border);
+}
+.wiki-col-kicker {
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: var(--ink-primary);
+}
+.wiki-col-tip {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--gold-deep);
+}
+.wiki-preview-box h3 {
+  font: 700 1.08rem/1.38 "Songti SC", "STSong", "Noto Serif CJK SC", SimSun, serif;
+  color: var(--ink-primary);
+  margin-bottom: 0.25rem;
+  overflow-wrap: anywhere;
+}
+.wiki-preview-box h4 {
+  font-size: 0.85rem;
+  font-weight: 700;
+  color: var(--ink-primary);
+  margin: 0.8rem 0 0.35rem;
+}
+.wiki-preview-box pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin: 0.55rem 0;
+  padding: 0.8rem 0.95rem;
+  background: #FFFFFF;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  font-size: 0.89rem;
+  line-height: 1.72;
+  color: var(--ink-primary);
+}
+.wiki-input-item {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.4rem 0.65rem;
+  padding: 0.55rem 0.68rem;
+  margin-top: 0.4rem;
+  border: 1px solid var(--line-soft);
+  border-radius: 9px;
+  background: #FFFFFF;
+  overflow-wrap: anywhere;
+}
+.wiki-input-meta {
+  min-width: 0;
+  font-size: 0.83rem;
+  color: var(--ink-secondary);
+}
+.wiki-right-inspect {
+  min-width: 0;
+  padding: 0.95rem 1.1rem 1.1rem;
+  border: 1px solid rgba(197, 155, 72, 0.38);
+  border-radius: 13px;
+  background: var(--xuan-pure);
+  box-shadow: var(--shadow-card);
+}
+.wiki-citation-seal {
+  margin: -0.95rem -1.1rem 0.85rem;
+  padding: 0.7rem 1.1rem;
+  border-radius: 12px 12px 0 0;
+  background: linear-gradient(90deg, #1D1F22 0%, #2B2E33 100%);
+  color: #EAD096;
+  font-size: 0.83rem;
+  font-weight: 650;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.35rem 0.65rem;
+}
+.wiki-seal-tag {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: rgba(234, 208, 150, 0.82);
+}
+.wiki-citation-empty {
+  padding: 0.85rem 0.95rem;
+  border: 1px dashed var(--gold-border);
+  border-radius: 10px;
+  background: #FCFBF8;
+  color: var(--ink-secondary);
+  font-size: 0.84rem;
+  line-height: 1.6;
+}
+.wiki-citation-box {
+  margin-top: 0.65rem;
+  padding: 0.85rem 0.95rem;
+  border: 1px solid var(--gold-border);
+  border-left: 3px solid var(--gold-main);
+  border-radius: 10px;
+  background: #FFFDF9;
+}
+.wiki-citation-box:first-of-type {
+  margin-top: 0;
+}
+.wiki-citation-box h4 {
+  font-size: 0.84rem;
+  color: var(--gold-deep);
+  margin: 0 0 0.38rem;
+}
+.wiki-citation-box pre {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 0.86rem;
+  line-height: 1.68;
+  color: var(--ink-primary);
+}
+.wiki-check-guide {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 0.75rem;
+  padding: 0.7rem 0.85rem;
+  border-radius: 10px;
+  background: #F6F4EE;
+  border: 1px solid var(--line-soft);
+}
+.wiki-check-ring {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 3px solid var(--gold-main);
+  background: #FFFFFF;
+  color: var(--gold-deep);
+  font-size: 0.74rem;
+  font-weight: 750;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.wiki-check-guide p {
+  font-size: 0.8rem;
+  color: var(--ink-secondary);
+  line-height: 1.5;
+}
+.wiki-signoff-box {
+  margin-top: 0.9rem;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--line-soft);
+}
+.wiki-signoff-box .status-message {
+  color: var(--gold-deep) !important;
+  font-size: 0.85rem;
+}
+
+.site-bar-inner {
+  flex-wrap: wrap;
+  padding-block: 0.45rem;
+}
+.site-bar nav,
+.site-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.3rem 0.75rem;
+  font-size: 0.86rem;
+}
+.oidc-sso-box {
+  padding: 0.75rem 1.25rem 0;
+}
+.workbench-stack {
+  display: grid;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+.workbench-form {
+  padding: 0.5rem 1.25rem 1.15rem;
+  display: grid;
+  gap: 0.65rem;
+  max-width: 46rem;
+}
+.workbench-form-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.7rem;
+}
+.workbench-inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.55rem;
+}
+.workbench-inline input[type="text"],
+.workbench-inline input[type="search"],
+.workbench-inline input[type="number"] {
+  min-width: 10rem;
+  flex: 1 1 11rem;
+}
+.scope-checklist {
+  display: grid;
+  gap: 0.35rem;
+  max-height: 12rem;
+  overflow-y: auto;
+  padding: 0.55rem 0.75rem;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--xuan-pure);
+}
+.scope-checklist label {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.45rem;
+  font-size: 0.86rem;
+  margin: 0;
+}
+.scope-checklist input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  min-height: 0;
+  margin-top: 0.18rem;
+  accent-color: var(--gold-deep);
+}
+.verify-summary {
+  margin-top: 0.65rem;
+  padding: 0.75rem 0.9rem;
+  border: 1px solid var(--gold-border);
+  border-left: 4px solid var(--gold-main);
+  border-radius: 10px;
+  background: var(--gold-tint);
+  font-size: 0.86rem;
+}
+.verify-summary pre {
+  margin: 0.45rem 0 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+/* ==================== 窄屏自适应（保留全部管理入口可点且零横向滚动） ==================== */
+@media (max-width: 980px) {
+  body.manage-app {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .manage-app .ink-sidebar {
+    position: relative;
+    height: auto;
+    padding: 0.75rem 0.95rem;
+    border-right: 0;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .manage-app .sidebar-ink-canvas,
+  .manage-app .sb-section-label {
+    display: none;
+  }
+  .manage-app .sb-content {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.55rem;
+  }
+  .manage-app .sb-head-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+  }
+  .manage-app .sb-nav-scroll {
+    overflow: visible;
+    margin-bottom: 0;
+  }
+  .manage-app .sb-nav {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 0.32rem;
+  }
+  .manage-app .sb-item {
+    width: auto;
+    min-height: 1.85rem;
+    padding: 0.22rem 0.55rem;
+    font-size: 0.76rem;
+    border-radius: 7px;
+    background: rgba(255, 255, 255, 0.05);
+  }
+  .manage-app .sb-bottom-card {
+    margin-top: 0;
+    padding: 0.35rem 0.68rem;
+    font-size: 0.78rem;
+    align-self: flex-start;
+  }
+  .wiki-management {
+    width: min(100% - 1.6rem, 72rem);
+  }
+  .wiki-review-split,
+  .catalog-overview-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 600px) {
+  .wiki-management {
+    width: calc(100% - 1.25rem);
+  }
+  .ledger-heading {
+    margin-top: 0.95rem;
+    padding: 1.05rem 1.1rem;
+  }
+  .workbench-form-row,
+  .wiki-counts,
+  .repair-columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .gold-ring-card,
+  .catalog-doc-row {
+    flex-wrap: wrap;
+  }
+  .repair-lookup {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .repair-lookup > div:not(#repair-page-field) {
+    grid-column: 1 / -1;
+  }
+  .repair-lookup:has(#repair-page-field[hidden]) button {
+    grid-column: 1 / -1;
+  }
+}

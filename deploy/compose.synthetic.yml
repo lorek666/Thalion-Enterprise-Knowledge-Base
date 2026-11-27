@@ -1,0 +1,84 @@
+# 仅供本机隔离合成资料联调；禁止直接用于生产环境。
+# 使用前请复制 deploy/env.example 并准备权限为 0700 的私有合成配置与原件目录（属主 UID 10001）。
+# 启动示例：
+#   THALION_POSTGRES_PASSWORD=<隔离口令> \
+#   THALION_SYNTHETIC_PROFILE_DIR=/path/to/profile \
+#   THALION_SYNTHETIC_ORIGINALS_DIR=/path/to/originals \
+#   docker compose -f deploy/compose.synthetic.yml up
+
+services:
+  db:
+    image: pgvector/pgvector@sha256:c29f30688a9ad961691bdf0ec1650717cc132a5814619d80f80463d6e4c42e47
+    restart: unless-stopped
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    environment:
+      POSTGRES_USER: "${THALION_POSTGRES_USER:-thalion}"
+      POSTGRES_DB: "${THALION_POSTGRES_DB:-thalion_synthetic}"
+      POSTGRES_PASSWORD: "${THALION_POSTGRES_PASSWORD:?请设置隔离合成数据库口令 THALION_POSTGRES_PASSWORD}"
+    ports:
+      - "127.0.0.1:${THALION_DB_PORT:-5432}:5432"
+    tmpfs:
+      - /tmp:size=64m
+      - /var/run/postgresql:size=32m
+    volumes:
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -q -h 127.0.0.1 -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  migrate:
+    image: "${THALION_APP_IMAGE:-thalion-enterprise-kb:local}"
+    network_mode: "service:db"
+    restart: "no"
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      THALION_DATABASE_URL: "postgresql://${THALION_POSTGRES_USER:-thalion}:${THALION_POSTGRES_PASSWORD:?请设置隔离合成数据库口令 THALION_POSTGRES_PASSWORD}@127.0.0.1:5432/${THALION_POSTGRES_DB:-thalion_synthetic}"
+    tmpfs:
+      - /tmp:size=64m
+    entrypoint: ["thalion-db"]
+    command: ["upgrade"]
+
+  app:
+    image: "${THALION_APP_IMAGE:-thalion-enterprise-kb:local}"
+    network_mode: "service:db"
+    restart: unless-stopped
+    read_only: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+    environment:
+      THALION_DATABASE_URL: "postgresql://${THALION_POSTGRES_USER:-thalion}:${THALION_POSTGRES_PASSWORD:?请设置隔离合成数据库口令 THALION_POSTGRES_PASSWORD}@127.0.0.1:5432/${THALION_POSTGRES_DB:-thalion_synthetic}"
+    tmpfs:
+      - /tmp:size=128m
+    volumes:
+      - "${THALION_SYNTHETIC_PROFILE_DIR:?请提供私有 0700 合成配置目录}:/var/lib/thalion/profile:ro"
+      - "${THALION_SYNTHETIC_ORIGINALS_DIR:?请提供私有 0700 合成原件目录}:/var/lib/thalion/originals:rw"
+    entrypoint: ["/bin/sh", "-ec"]
+    command:
+      - >-
+        thalion-serve --check-config
+        --profile /var/lib/thalion/profile
+        --originals /var/lib/thalion/originals
+        --port "${THALION_APP_PORT:-8765}" &&
+        exec thalion-serve
+        --profile /var/lib/thalion/profile
+        --originals /var/lib/thalion/originals
+        --port "${THALION_APP_PORT:-8765}"
+
+volumes:
+  pgdata:

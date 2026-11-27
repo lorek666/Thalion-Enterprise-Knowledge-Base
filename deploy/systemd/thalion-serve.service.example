@@ -1,0 +1,53 @@
+# Thalion 企业知识库服务单元模板（当前面向本机隔离合成模式；生产接入须先完成 E01 与 X01–X06）
+# 安装示例：
+#   sudo install -m 0644 deploy/systemd/thalion-serve.service.example /etc/systemd/system/thalion-serve.service
+#   sudo systemctl daemon-reload && sudo systemctl enable --now thalion-serve.service
+
+[Unit]
+Description=Thalion Enterprise Knowledge Base Service (Synthetic Local Profile)
+After=network-online.target postgresql.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=thalion
+Group=thalion
+WorkingDirectory=/var/lib/thalion
+EnvironmentFile=/etc/thalion/thalion.env
+UMask=0077
+
+# 启动前校验私有目录权限、配置完整性与共享数据库迁移头
+ExecStartPre=/opt/thalion-venv/bin/thalion-serve \
+    --check-config \
+    --profile /var/lib/thalion/profile \
+    --originals /var/lib/thalion/originals \
+    --port 8765
+
+ExecStart=/opt/thalion-venv/bin/thalion-serve \
+    --profile /var/lib/thalion/profile \
+    --originals /var/lib/thalion/originals \
+    --port 8765
+
+Restart=on-failure
+RestartSec=5
+TimeoutStartSec=30
+TimeoutStopSec=15
+
+# 进程与文件系统最小权限加固
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateDevices=yes
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectControlGroups=yes
+LockPersonality=yes
+CapabilityBoundingSet=
+AmbientCapabilities=
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+ReadOnlyPaths=/var/lib/thalion/profile
+ReadWritePaths=/var/lib/thalion/originals
+
+[Install]
+WantedBy=multi-user.target

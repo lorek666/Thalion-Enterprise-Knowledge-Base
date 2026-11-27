@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>AI 允许读哪些文件 · 知识库管理后台</title>
+  <link rel="stylesheet" href="/employee/portal.css">
+  <link rel="stylesheet" href="/manage/wiki.css">
+  <script src="/manage/readers.js" defer></script>
+  <script type="module" src="/manage/sso.js"></script>
+</head>
+<body class="manage-app" data-model-egress-policy>
+  <aside class="ink-sidebar" aria-label="管理入口">
+    <div class="sb-content">
+      <div class="sb-head-row">
+        <a class="sb-brand" href="/manage/catalog">
+          <span class="sb-seal" aria-hidden="true">AI</span>
+          <span>
+            <strong class="sb-title">知识库管理后台</strong>
+            <small class="sb-subtitle">管文件 · 设权限 · 看审核</small>
+          </span>
+        </a>
+      </div>
+      <div class="sb-nav-scroll">
+        <div class="sb-section-label">文件与同步</div>
+        <nav class="sb-nav" aria-label="文件与同步">
+          <a class="sb-item" href="/manage/catalog"><span class="sr-only">空间目录</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>全部制度文件</span></a>
+          <a class="sb-item" href="/manage/ingest"><span class="sr-only">资料入库</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>上传新文件</span></a>
+          <a class="sb-item" href="/manage/sources"><span class="sr-only">来源同步</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>OA 自动同步状态</span></a>
+          <a class="sb-item" href="/manage/glossary"><span class="sr-only">业务词典</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>搜索近义词表</span></a>
+        </nav>
+        <div class="sb-section-label">审核与谁能看</div>
+        <nav class="sb-nav" aria-label="审核与谁能看">
+          <a class="sb-item" href="/manage/repairs"><span class="sr-only">校订审核</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>核对识别出的文字</span></a>
+          <a class="sb-item" href="/manage/effectivity"><span class="sr-only">生效审批</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>设生效时间上线</span></a>
+          <a class="sb-item" href="/manage/responsibility"><span class="sr-only">资料负责人</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>指定制度联系人</span></a>
+          <a class="sb-item" href="/manage/readers"><span class="sr-only">读者规则</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>设置谁有权限看</span></a>
+          <a class="sb-item" href="/manage/governance"><span class="sr-only">空间治理</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>临时共享与交接</span></a>
+          <a class="sb-item active" href="/manage/model-egress" aria-current="page"><span class="sr-only">外发规则</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>AI 允许读哪些文件</span></a>
+        </nav>
+        <div class="sb-section-label">省流总结与记录</div>
+        <nav class="sb-nav" aria-label="省流总结与记录">
+          <a class="sb-item" href="/manage/wiki"><span class="sr-only">发布台账</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>核对 AI 省流总结</span></a>
+          <a class="sb-item" href="/manage/feedback"><span class="sr-only">纠错办理</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>员工报错反馈</span></a>
+          <a class="sb-item" href="/manage/runtime"><span class="sr-only">任务积压</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>后台排队进度</span></a>
+          <a class="sb-item" href="/manage/lifecycle"><span class="sr-only">保留处置与审计</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>清理与操作记录</span></a>
+          <a class="sb-item" href="/manage/archives"><span class="sr-only">归档导出</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>打包备份导出</span></a>
+        </nav>
+      </div>
+      <a class="sb-bottom-card" href="/">
+        <span class="sr-only">员工取证</span>
+        <span aria-hidden="true">返回员工查制度页</span>
+        <span class="gold-arrow" aria-hidden="true">↗</span>
+      </a>
+    </div>
+  </aside>
+  <div class="main-shell">
+    <header class="site-bar">
+      <div class="site-bar-inner">
+        <div class="top-tabs">
+          <span class="top-tab active">AI 允许读哪些文件</span>
+          <span class="top-subnote">控制哪些制度内容允许发给内部 AI 生成总结</span>
+        </div>
+        <div class="session-controls">
+          <span class="seal-pill"><span class="gold-dot" aria-hidden="true"></span>未勾选允许的文件绝不会发给大模型</span>
+        </div>
+      </div>
+    </header>
+    <main class="page-width wiki-management">
+      <header class="ledger-heading">
+        <h1>设置允许 AI 读取的制度范围</h1>
+        <p>默认所有制度都不会发给 AI；只有在这里明确勾选允许的文件和用途，才会通过受控通道（<code>synthetic-gateway</code>）用来辅助生成大白话总结草稿。</p>
+      </header>
+    <section class="ledger-panel" id="model-egress-lock" aria-labelledby="model-egress-access-title">
+      <div class="panel-heading"><h2 id="model-egress-access-title"><span class="sr-only">外发规则审批人凭据</span><span aria-hidden="true">输入审批人口令</span></h2><span class="local-label"><span></span>验证口令后进入</span></div>
+      <form class="wiki-access-form" id="model-egress-access" autocomplete="off">
+        <label for="model-egress-token"><span class="sr-only">管理测试凭据</span><span aria-hidden="true">审批人口令</span></label>
+        <div class="access-field">
+          <input id="model-egress-token" type="password" maxlength="16384" spellcheck="false" required>
+          <button type="submit" class="primary-button"><span class="sr-only">载入管理凭据</span><span aria-hidden="true">进入 AI 授权设置</span></button>
+        </div>
+      </form>
+    </section>
+    <section class="ledger-panel" id="model-egress-workspace" aria-labelledby="model-egress-title" hidden>
+      <div class="panel-heading">
+        <h2 id="model-egress-title"><span class="sr-only">读取外发规则</span><span aria-hidden="true">选择要设置的制度文件库</span></h2>
+        <button id="model-egress-logout" type="button" class="quiet-button"><span class="sr-only">更换凭据</span><span aria-hidden="true">切换账号 / 退出</span></button>
+      </div>
+      <form class="wiki-access-form" id="model-egress-lookup" autocomplete="off">
+        <label for="model-egress-source"><span class="sr-only">来源编号</span><span aria-hidden="true">要设置哪个文件库（填文件库编号）</span></label>
+        <div class="access-field">
+          <input id="model-egress-source" maxlength="36" spellcheck="false" placeholder="来源 UUID" required>
+          <button type="submit" class="quiet-button"><span class="sr-only">读取当前规则</span><span aria-hidden="true">查看现有 AI 授权</span></button>
+        </div>
+      </form>
+      <p class="panel-status" id="model-egress-status" role="status"></p>
+      <section class="work-detail" id="model-egress-ruleset" aria-labelledby="model-egress-ruleset-title" hidden>
+        <div class="panel-heading"><h2 id="model-egress-ruleset-title"><span class="sr-only">编辑当前外发规则</span><span aria-hidden="true">勾选允许内部 AI 读取的范围与有效期</span></h2></div>
+        <p class="panel-status" id="model-egress-meta"></p>
+        <form class="wiki-access-form" id="model-egress-editor" autocomplete="off">
+          <div id="model-egress-rows"></div>
+          <div class="work-buttons"><button class="quiet-button" type="button" id="model-egress-add"><span class="sr-only">新增外发规则</span><span aria-hidden="true">＋ 加一条 AI 允许读取范围</span></button></div>
+          <label for="model-egress-basis"><span class="sr-only">变更依据编号</span><span aria-hidden="true">本次授权留档单号（UUID）</span></label>
+          <input id="model-egress-basis" maxlength="36" spellcheck="false" placeholder="依据 UUID" required>
+          <label class="repair-option"><input type="checkbox" id="model-egress-confirm"><span class="sr-only">确认替换该来源的全部外发规则</span><span aria-hidden="true">我已核对无误，用上面的清单替换这个文件库的 AI 授权</span></label>
+          <p class="input-hint">注意：如果一条都不留直接保存，就会禁止 AI 再读取这个文件库的任何文件（员工自己查原文不受影响）。</p>
+          <div class="work-buttons"><button type="submit" class="primary-button" id="model-egress-save" disabled><span class="sr-only">保存外发规则</span><span aria-hidden="true">保存 AI 可读范围</span></button></div>
+        </form>
+      </section>
+    </section>
+    </main>
+  </div>
+  <template id="model-egress-row">
+    <fieldset class="repair-change">
+      <legend></legend>
+      <label><span class="sr-only">主体编号</span><span aria-hidden="true">允许哪位员工或群组调用 AI（填编号）</span><input name="subject_id" maxlength="36" spellcheck="false" placeholder="员工或群组编号（UUID）" required></label>
+      <label><span class="sr-only">片段编号</span><span aria-hidden="true">允许 AI 读哪一条款段落（填编号）</span><input name="passage_id" maxlength="36" spellcheck="false" placeholder="段落编号（UUID）" required></label>
+      <label><span class="sr-only">外发用途</span><span aria-hidden="true">允许 AI 拿来干什么</span><select name="purpose" required>
+        <option value="" selected disabled>选择一种用途</option>
+        <option value="model_answer">员工问答时辅助回答</option>
+        <option value="wiki_compilation">帮忙写大白话省流总结草稿</option>
+        <option value="model_review">帮管理员做初筛复核</option>
+      </select></label>
+      <label><span class="sr-only">规则结果</span><span aria-hidden="true">允许还是禁止</span><select name="effect"><option value="allow">允许 AI 读取</option><option value="deny">禁止 AI 读取</option></select></label>
+      <fieldset class="repair-mode">
+        <legend>允许把哪些部分发给内部 AI</legend>
+        <label class="repair-option"><input name="fields" type="checkbox" value="excerpt">摘录</label>
+        <label class="repair-option"><input name="fields" type="checkbox" value="citation">引用</label>
+        <label class="repair-option"><input name="fields" type="checkbox" value="title">标题</label>
+        <label class="repair-option"><input name="fields" type="checkbox" value="location">定位</label>
+        <label class="repair-option"><input name="fields" type="checkbox" value="version">版本</label>
+      </fieldset>
+      <label><span class="sr-only">有效起始</span><span aria-hidden="true">授权开始时间（带时区）</span><input name="valid_from" maxlength="40" spellcheck="false" placeholder="2026-11-23T09:00:00+08:00" required></label>
+      <label><span class="sr-only">有效截止</span><span aria-hidden="true">授权到期时间（带时区）</span><input name="valid_until" maxlength="40" spellcheck="false" placeholder="2026-11-23T17:00:00+08:00" required></label>
+      <button class="quiet-button" type="button"><span class="sr-only">移除此规则</span><span aria-hidden="true">删掉这条</span></button>
+    </fieldset>
+  </template>
+</body>
+</html>

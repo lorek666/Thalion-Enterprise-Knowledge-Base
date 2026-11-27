@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>设置谁有权限看 · 知识库管理后台</title>
+  <link rel="stylesheet" href="/employee/portal.css">
+  <link rel="stylesheet" href="/manage/wiki.css">
+  <script src="/manage/readers.js" defer></script>
+  <script type="module" src="/manage/sso.js"></script>
+</head>
+<body class="manage-app">
+  <aside class="ink-sidebar" aria-label="管理入口">
+    <div class="sb-content">
+      <div class="sb-head-row">
+        <a class="sb-brand" href="/manage/catalog">
+          <span class="sb-seal" aria-hidden="true">权</span>
+          <span>
+            <strong class="sb-title">知识库管理后台</strong>
+            <small class="sb-subtitle">管文件 · 设权限 · 看审核</small>
+          </span>
+        </a>
+      </div>
+      <div class="sb-nav-scroll">
+        <div class="sb-section-label">文件与同步</div>
+        <nav class="sb-nav" aria-label="文件与同步">
+          <a class="sb-item" href="/manage/catalog"><span class="sr-only">空间目录</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>全部制度文件</span></a>
+          <a class="sb-item" href="/manage/ingest"><span class="sr-only">资料入库</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>上传新文件</span></a>
+          <a class="sb-item" href="/manage/sources"><span class="sr-only">来源同步</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>OA 自动同步状态</span></a>
+          <a class="sb-item" href="/manage/glossary"><span class="sr-only">业务词典</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>搜索近义词表</span></a>
+        </nav>
+        <div class="sb-section-label">审核与谁能看</div>
+        <nav class="sb-nav" aria-label="审核与谁能看">
+          <a class="sb-item" href="/manage/repairs"><span class="sr-only">校订审核</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>核对识别出的文字</span></a>
+          <a class="sb-item" href="/manage/effectivity"><span class="sr-only">生效审批</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>设生效时间上线</span></a>
+          <a class="sb-item" href="/manage/responsibility"><span class="sr-only">资料负责人</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>指定制度联系人</span></a>
+          <a class="sb-item active" href="/manage/readers" aria-current="page"><span class="sr-only">读者规则</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>设置谁有权限看</span></a>
+          <a class="sb-item" href="/manage/governance"><span class="sr-only">空间治理</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>临时共享与交接</span></a>
+          <a class="sb-item" href="/manage/model-egress"><span class="sr-only">外发规则</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>AI 允许读哪些文件</span></a>
+        </nav>
+        <div class="sb-section-label">省流总结与记录</div>
+        <nav class="sb-nav" aria-label="省流总结与记录">
+          <a class="sb-item" href="/manage/wiki"><span class="sr-only">发布台账</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>核对 AI 省流总结</span></a>
+          <a class="sb-item" href="/manage/feedback"><span class="sr-only">纠错办理</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>员工报错反馈</span></a>
+          <a class="sb-item" href="/manage/runtime"><span class="sr-only">任务积压</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>后台排队进度</span></a>
+          <a class="sb-item" href="/manage/lifecycle"><span class="sr-only">保留处置与审计</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>清理与操作记录</span></a>
+          <a class="sb-item" href="/manage/archives"><span class="sr-only">归档导出</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>打包备份导出</span></a>
+        </nav>
+      </div>
+      <a class="sb-bottom-card" href="/">
+        <span class="sr-only">员工取证</span>
+        <span aria-hidden="true">返回员工查制度页</span>
+        <span class="gold-arrow" aria-hidden="true">↗</span>
+      </a>
+    </div>
+  </aside>
+  <div class="main-shell">
+    <header class="site-bar">
+      <div class="site-bar-inner">
+        <div class="top-tabs">
+          <span class="top-tab active">设置谁有权限看</span>
+          <span class="top-subnote">按人员或部门控制哪些制度条款允许查看</span>
+        </div>
+        <div class="session-controls">
+          <span class="seal-pill"><span class="gold-dot" aria-hidden="true"></span>保存新规则前需勾选确认，防止误改权限</span>
+        </div>
+      </div>
+    </header>
+    <main class="page-width wiki-management">
+      <header class="ledger-heading">
+        <h1>设置谁有权限看这份制度</h1>
+        <p>设置哪些员工或群组可以查看对应文件库里的内容。只有原系统和这里都允许看的员工，才能搜到并打开原文。</p>
+      </header>
+    <section class="ledger-panel" id="readers-lock" aria-labelledby="readers-access-title">
+      <div class="panel-heading"><h2 id="readers-access-title"><span class="sr-only">来源负责人凭据</span><span aria-hidden="true">输入管理员口令</span></h2><span class="local-label"><span></span>验证口令后进入</span></div>
+      <form class="wiki-access-form" id="readers-access" autocomplete="off">
+        <label for="readers-token"><span class="sr-only">管理测试凭据</span><span aria-hidden="true">管理员口令</span></label>
+        <div class="access-field">
+          <input id="readers-token" type="password" maxlength="16384" spellcheck="false" required>
+          <button type="submit" class="primary-button"><span class="sr-only">载入管理凭据</span><span aria-hidden="true">进入查看权限设置</span></button>
+        </div>
+      </form>
+    </section>
+    <section class="ledger-panel" id="readers-workspace" aria-labelledby="readers-title" hidden>
+      <div class="panel-heading">
+        <h2 id="readers-title"><span class="sr-only">读取来源策略</span><span aria-hidden="true">选择要设置查看权限的文件库</span></h2>
+        <button id="readers-logout" type="button" class="quiet-button"><span class="sr-only">更换凭据</span><span aria-hidden="true">切换账号 / 退出</span></button>
+      </div>
+      <form class="wiki-access-form" id="readers-lookup" autocomplete="off">
+        <label for="readers-source"><span class="sr-only">来源编号</span><span aria-hidden="true">要给哪个文件库设权限（填文件库编号）</span></label>
+        <div class="access-field">
+          <input id="readers-source" maxlength="36" spellcheck="false" placeholder="来源 UUID" required>
+          <button type="submit" class="quiet-button"><span class="sr-only">读取当前规则</span><span aria-hidden="true">查看现有权限</span></button>
+        </div>
+      </form>
+      <p class="panel-status" id="readers-status" role="status"></p>
+      <section class="work-detail" id="readers-ruleset" aria-labelledby="readers-ruleset-title" hidden>
+        <div class="panel-heading"><h2 id="readers-ruleset-title"><span class="sr-only">编辑当前读者规则</span><span aria-hidden="true">设置哪些员工或部门可以查看</span></h2></div>
+        <p class="panel-status" id="readers-meta"></p>
+        <p class="panel-status" id="readers-retained"></p>
+        <form class="wiki-access-form" id="readers-editor" autocomplete="off">
+          <div id="readers-rows"></div>
+          <div class="work-buttons"><button class="quiet-button" type="button" id="readers-add"><span class="sr-only">新增读者规则</span><span aria-hidden="true">＋ 加一条查看权限</span></button></div>
+          <label for="readers-basis"><span class="sr-only">变更依据编号</span><span aria-hidden="true">本次改权限的留档单号（UUID）</span></label>
+          <input id="readers-basis" maxlength="36" spellcheck="false" placeholder="依据 UUID" required>
+          <label class="repair-option"><input type="checkbox" id="readers-confirm"><span class="sr-only">确认替换该来源的全部读者规则</span><span aria-hidden="true">我已核对无误，用上面的名单替换这个文件库的查看权限</span></label>
+          <p class="input-hint">注意：如果上面一条都不留直接保存，会清空这个文件库的全部查看权限（后台本地工作区配置不受影响）。</p>
+          <div class="work-buttons"><button type="submit" class="primary-button" id="readers-save" disabled><span class="sr-only">保存来源规则</span><span aria-hidden="true">保存最新查看权限</span></button></div>
+        </form>
+      </section>
+    </section>
+    </main>
+  </div>
+  <template id="readers-row">
+    <fieldset class="repair-change">
+      <legend></legend>
+      <label><span class="sr-only">主体编号</span><span aria-hidden="true">允许/禁止哪位员工或群组（填编号）</span><input name="subject_id" maxlength="36" spellcheck="false" placeholder="员工或群组编号（UUID）" required></label>
+      <label><span class="sr-only">规则结果</span><span aria-hidden="true">给看还是不给看</span><select name="effect"><option value="allow">允许查看</option><option value="deny">禁止查看</option></select></label>
+      <label><span class="sr-only">片段编号</span><span aria-hidden="true">只限某一条款段落时填编号（整库适用留空）</span><input name="passage_id" maxlength="36" spellcheck="false" placeholder="单条段落编号（UUID）"></label>
+      <label class="repair-option"><input name="whole_source" type="checkbox"><span class="sr-only">应用于整个来源</span><span aria-hidden="true">对整个文件库全部制度生效</span></label>
+      <fieldset class="repair-mode">
+        <legend>允许看到哪些内容部分</legend>
+        <label class="repair-option"><input name="fields" type="checkbox" value="excerpt">摘录</label>
+        <label class="repair-option"><input name="fields" type="checkbox" value="citation">引用</label>
+        <label class="repair-option"><input name="fields" type="checkbox" value="title">标题</label>
+        <label class="repair-option"><input name="fields" type="checkbox" value="location">定位</label>
+        <label class="repair-option"><input name="fields" type="checkbox" value="version">版本</label>
+      </fieldset>
+      <label><span class="sr-only">有效起始</span><span aria-hidden="true">权限从什么时候开始生效（带时区）</span><input name="valid_from" maxlength="40" spellcheck="false" placeholder="2026-11-01T00:00:00+08:00" required></label>
+      <label><span class="sr-only">有效截止（选填）</span><span aria-hidden="true">什么时候自动过期（长期有效就留空）</span><input name="valid_until" maxlength="40" spellcheck="false" placeholder="例如 2026-12-31T23:59:59+08:00"></label>
+      <button class="quiet-button" type="button"><span class="sr-only">移除此规则</span><span aria-hidden="true">删掉这条</span></button>
+    </fieldset>
+  </template>
+</body>
+</html>

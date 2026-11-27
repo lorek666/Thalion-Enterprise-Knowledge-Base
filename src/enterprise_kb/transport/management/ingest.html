@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>上传新文件 · 知识库管理后台</title>
+  <link rel="stylesheet" href="/employee/portal.css">
+  <link rel="stylesheet" href="/manage/wiki.css">
+  <script src="/manage/ingest.js" defer></script>
+  <script type="module" src="/manage/sso.js"></script>
+</head>
+<body class="manage-app">
+  <aside class="ink-sidebar" aria-label="管理入口">
+    <div class="sb-content">
+      <div class="sb-head-row">
+        <a class="sb-brand" href="/manage/catalog">
+          <span class="sb-seal" aria-hidden="true">传</span>
+          <span>
+            <strong class="sb-title">知识库管理后台</strong>
+            <small class="sb-subtitle">管文件 · 设权限 · 看审核</small>
+          </span>
+        </a>
+      </div>
+      <div class="sb-nav-scroll">
+        <div class="sb-section-label">文件与同步</div>
+        <nav class="sb-nav" aria-label="文件与同步">
+          <a class="sb-item" href="/manage/catalog"><span class="sr-only">空间目录</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>全部制度文件</span></a>
+          <a class="sb-item active" href="/manage/ingest" aria-current="page"><span class="sr-only">资料入库</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>上传新文件</span></a>
+          <a class="sb-item" href="/manage/sources"><span class="sr-only">来源同步</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>OA 自动同步状态</span></a>
+          <a class="sb-item" href="/manage/glossary"><span class="sr-only">业务词典</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>搜索近义词表</span></a>
+        </nav>
+        <div class="sb-section-label">审核与谁能看</div>
+        <nav class="sb-nav" aria-label="审核与谁能看">
+          <a class="sb-item" href="/manage/repairs"><span class="sr-only">校订审核</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>核对识别出的文字</span></a>
+          <a class="sb-item" href="/manage/effectivity"><span class="sr-only">生效审批</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>设生效时间上线</span></a>
+          <a class="sb-item" href="/manage/responsibility"><span class="sr-only">资料负责人</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>指定制度联系人</span></a>
+          <a class="sb-item" href="/manage/readers"><span class="sr-only">读者规则</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>设置谁有权限看</span></a>
+          <a class="sb-item" href="/manage/governance"><span class="sr-only">空间治理</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>临时共享与交接</span></a>
+          <a class="sb-item" href="/manage/model-egress"><span class="sr-only">外发规则</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>AI 允许读哪些文件</span></a>
+        </nav>
+        <div class="sb-section-label">省流总结与记录</div>
+        <nav class="sb-nav" aria-label="省流总结与记录">
+          <a class="sb-item" href="/manage/wiki"><span class="sr-only">发布台账</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>核对 AI 省流总结</span></a>
+          <a class="sb-item" href="/manage/feedback"><span class="sr-only">纠错办理</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>员工报错反馈</span></a>
+          <a class="sb-item" href="/manage/runtime"><span class="sr-only">任务积压</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>后台排队进度</span></a>
+          <a class="sb-item" href="/manage/lifecycle"><span class="sr-only">保留处置与审计</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>清理与操作记录</span></a>
+          <a class="sb-item" href="/manage/archives"><span class="sr-only">归档导出</span><span class="sb-item-left" aria-hidden="true"><span class="sb-dot"></span>打包备份导出</span></a>
+        </nav>
+      </div>
+      <a class="sb-bottom-card" href="/">
+        <span class="sr-only">员工取证</span>
+        <span aria-hidden="true">返回员工查制度页</span>
+        <span class="gold-arrow" aria-hidden="true">↗</span>
+      </a>
+    </div>
+  </aside>
+  <div class="main-shell">
+    <header class="site-bar">
+      <div class="site-bar-inner">
+        <div class="top-tabs">
+          <span class="top-tab active">上传新文件</span>
+          <span class="top-subnote">支持 Word、PDF、表格、PPT、网页、图片</span>
+        </div>
+        <div class="session-controls">
+          <span class="seal-pill"><span class="gold-dot" aria-hidden="true"></span>上传后需核对并设生效日才会给员工看</span>
+        </div>
+      </div>
+    </header>
+    <main class="page-width wiki-management">
+      <header class="ledger-heading">
+        <h1>上传新的公司制度文件</h1>
+        <p>一次最多可传 20 份文件（共不超过 32MB）。刚传完的文件默认处于待审核状态，不会直接展示给普通员工。</p>
+      </header>
+    <section class="ledger-panel" id="ingest-lock" aria-labelledby="ingest-access-title">
+      <div class="panel-heading"><h2 id="ingest-access-title"><span class="sr-only">来源负责人验证</span><span aria-hidden="true">输入管理员口令</span></h2><span class="local-label"><span></span>验证口令后进入</span></div>
+      <form class="wiki-access-form" id="ingest-access" autocomplete="off">
+        <label for="ingest-token"><span class="sr-only">管理测试凭据</span><span aria-hidden="true">管理员口令</span></label>
+        <div class="access-field">
+          <input type="password" id="ingest-token" autocomplete="off" spellcheck="false" maxlength="16384" required>
+          <button type="submit" class="primary-button"><span class="sr-only">载入上传凭据</span><span aria-hidden="true">进入上传页面</span></button>
+        </div>
+        <p class="status-message" id="ingest-lock-message" role="status"></p>
+      </form>
+    </section>
+    <section class="ledger-panel" id="ingest-workspace" aria-labelledby="ingest-title" hidden>
+      <div class="panel-heading">
+        <h2 id="ingest-title" tabindex="-1"><span class="sr-only">本批文件</span><span aria-hidden="true">选择要上传的制度文件</span></h2>
+        <button id="ingest-logout" class="quiet-button" type="button"><span class="sr-only">更换凭据</span><span aria-hidden="true">切换账号 / 退出</span></button>
+      </div>
+      <form class="wiki-access-form" id="ingest-form" autocomplete="off">
+        <label for="ingest-source"><span class="sr-only">来源编号</span><span aria-hidden="true">传到哪个制度文件库（填文件库编号）</span></label>
+        <input id="ingest-source" maxlength="36" spellcheck="false" placeholder="粘贴目标文件库编号（UUID）" required>
+        <label for="ingest-files"><span class="sr-only">选择文件</span><span aria-hidden="true">从电脑挑选要上传的文件</span></label>
+        <input id="ingest-files" type="file" multiple accept=".pdf,.docx,.xlsx,.pptx,.html,.htm,.png,.jpg,.jpeg,.md,.markdown,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.openxmlformats-officedocument.presentationml.presentation,text/html,image/png,image/jpeg,text/markdown">
+        <p class="input-hint">一次最多选 20 个文件，总大小不超过 32MB，单个文件不超过 16MB；系统会自动校验文件格式是否真实。</p>
+        <div id="ingest-rows" class="repair-changes" aria-live="polite"></div>
+        <div class="work-buttons">
+          <button id="ingest-submit" class="primary-button" type="submit" disabled><span class="sr-only">登记本批文件</span><span aria-hidden="true">开始上传这批文件</span></button>
+        </div>
+      </form>
+      <p class="panel-status" id="ingest-status" role="status"></p>
+      <section id="ingest-results" class="ledger-panel" aria-labelledby="ingest-results-title" hidden>
+        <div class="panel-heading"><h2 id="ingest-results-title"><span class="sr-only">逐文件结果</span><span aria-hidden="true">本次上传结果明细</span></h2></div>
+        <p class="panel-status" id="ingest-results-meta"></p>
+        <ul id="ingest-result-list" class="result-list"></ul>
+      </section>
+      <section class="work-detail" aria-labelledby="ingest-history-title">
+        <div class="panel-heading">
+          <h2 id="ingest-history-title"><span class="sr-only">入库台账</span><span aria-hidden="true">以前上传过的文件记录</span></h2>
+          <button id="ingest-history-load" class="quiet-button" type="button"><span class="sr-only">查询台账</span><span aria-hidden="true">查看历史上传记录</span></button>
+        </div>
+        <p id="ingest-history-message" class="panel-status" role="status"></p>
+        <ul id="ingest-history-list" class="result-list" aria-busy="false"></ul>
+        <div class="panel-heading" id="ingest-history-pages" hidden>
+          <button id="ingest-history-next" class="quiet-button" type="button"><span class="sr-only">较早批次</span><span aria-hidden="true">加载更早上传的</span></button>
+        </div>
+      </section>
+      <section class="ledger-panel work-detail" aria-labelledby="ingest-processing-title">
+        <div class="panel-heading"><h2 id="ingest-processing-title"><span class="sr-only">查看版本处理状态</span><span aria-hidden="true">按编号查某份文件解析好了没有</span></h2></div>
+        <p class="panel-status">点上面记录里的“查看处理状态”，或把文件版本编号贴在下面，就能看系统是否解析完。解析完成不代表已经对员工开放，还需走核对与设生效日。</p>
+        <form class="wiki-access-form" id="ingest-processing-form" autocomplete="off">
+          <label for="ingest-processing-version"><span class="sr-only">资料版本编号</span><span aria-hidden="true">要查哪份文件的版本编号</span></label>
+          <input id="ingest-processing-version" maxlength="36" spellcheck="false" placeholder="粘贴文件版本编号（UUID）" required>
+          <div class="work-buttons"><button class="quiet-button" type="submit"><span class="sr-only">查询处理状态</span><span aria-hidden="true">查解析进度</span></button></div>
+        </form>
+        <p class="panel-status" id="ingest-processing-message" role="status"></p>
+      </section>
+    </section>
+      </main>
+  </div>
+</body>
+</html>
